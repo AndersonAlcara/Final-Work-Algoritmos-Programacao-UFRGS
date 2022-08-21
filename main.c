@@ -44,7 +44,7 @@ int main()
     {
         if(IsKeyPressed(KEY_TAB))
             menu = !menu;//se TAB for pressionado abre um menu
-
+                        // o booleano inicial do menu é invertido
         if(menu){
         //menu aberto que não atualiza mais as ações do jogo. AINDA NAO CONFIGURADO
 

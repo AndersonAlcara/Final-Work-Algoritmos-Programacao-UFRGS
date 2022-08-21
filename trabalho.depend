@@ -1,0 +1,15 @@
+# depslib dependency file v1.0
+1661122713 source:c:\users\a_alc\onedrive\Área de trabalho\matérias\alg&prog\trabalho_final\githubfinal_work\funcoes.c
+	"raylib.h"
+	<stdio.h>
+	<stdlib.h>
+	<time.h>
+	<math.h>
+
+1661121737 source:c:\users\a_alc\onedrive\Área de trabalho\matérias\alg&prog\trabalho_final\githubfinal_work\main.c
+	"raylib.h"
+	<stdio.h>
+	<stdlib.h>
+	<time.h>
+	<math.h>
+

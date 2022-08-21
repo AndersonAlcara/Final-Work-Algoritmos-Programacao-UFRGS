@@ -14,11 +14,15 @@ void atualizaJogo();
 
 void initJogo(int* posicaoIpersX, int* posicaoIpersY, char mapa[][28], int* jogadorX, int* jogadorY, int* qntdW, int xw[], int yw[])
 {
-    int x = 0, y = 0;
-    int aux = 0;
+    int x, y;
+    int aux;
+    int i, j;
+    x = 0;
+    y = 0;
+    aux = 0;
 
-    for(int i = 0; i < 11; i++){//percorre a matriz mapa e identifica a posicao inicial do jogador, onde há paredes indestrutiveis e quantas sao elas
-        for(int j = 0; j < 28; j++){
+    for(i = 0; i < 11; i++){//percorre a matriz mapa e identifica a posicao inicial do jogador, onde há paredes indestrutiveis e quantas sao elas
+        for(j = 0; j < 28; j++){
             if(mapa[i][j]=='J'){
                 *posicaoIpersX = x;
                 *posicaoIpersY = y;
@@ -36,6 +40,7 @@ void initJogo(int* posicaoIpersX, int* posicaoIpersY, char mapa[][28], int* joga
         x = 0;
 
     }
+    // se usasse jogadorX e jogadorY, lá dentro, nao precisaria atribuir aqui fora alem de dimunuir o tamanho dos parametros.
     *jogadorX = *posicaoIpersX;//repassa a posicao inicial do jogador para uma posição dinâmica, que será atualizada por cada acao de movimento do jogador
     *jogadorY = *posicaoIpersY;
     *qntdW = aux;//quantas paredes indestrutiveis
@@ -82,13 +87,14 @@ void desenhaJogo(char mapa[11][28], int xw[], int yw[], int*posicaoatualX, int*p
 int podeMover(int posicaoatualX, int posicaoatualY, int persdx, int persdy, int xw[], int yw[], int qntdW)
 {
     //ve se o personagem consegue se mover, ou seja, se não vai ocupar o mesmo espaço que outra parede indestrutivel
-    int colidiu=0;
-    for(int i = 0; i < qntdW; i++){
+    int colidiu = 0; //usar a propria colidiu
+    int i;
+    for(i = 0; i < qntdW; i++){
         if(((posicaoatualX + persdx)==xw[i])&&((posicaoatualY + persdy)==yw[i])){
-            return 1;
+            colidiu = 1; //nao seria possivel trocar por uma variavel?
         }
     }
-    return 0;
+    return colidiu;
 
 }
 
@@ -113,9 +119,10 @@ void atualizaJogo(int *posicaoatualX, int *posicaoatualY, int xw[], int yw[], in
     persdy = ARESTA;
 
     }
+    // verifica se é possivel mover o personagem
     if(podeMover(*posicaoatualX, *posicaoatualY, persdx, persdy, xw, yw, qntdW)==0){
-        *posicaoatualX+=persdx;
-        *posicaoatualY+=persdy;
+        *posicaoatualX = *posicaoatualX + persdx;
+        *posicaoatualY = *posicaoatualY + persdy;
     }
 
 }
