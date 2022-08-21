@@ -12,6 +12,7 @@ void desenhaJogo();
 int podeMover();
 void atualizaJogo();
 
+//só para testar se o GitHub está funcionando.
 int main()
 {
     bool menu = false;
