@@ -12,12 +12,10 @@ void desenhaJogo();
 int podeMover();
 void atualizaJogo();
 
-//só para testar se o GitHub está funcionando.
 int main()
 {
     bool menu = false;
-    int* jogadorX=0, *jogadorY=0;
-    int* posIx=0, *posIy=0;
+    int* pos_dinamicaPersX = 0, *pos_dinamicaPersY = 0;
     char mapa[11][28] =  {"WWWWWWWWWWWWWWWWWWWWWWWWWWW",
                           "W     W                   W",
                           "W     W                   W",
@@ -29,13 +27,13 @@ int main()
                           "W       WWWWWWWWWWWW  WW  W",
                           "W WWWWWWWWWWWWWWWWWWWWWWWWW",
                           "WWWWWWWWWWWWWWWWWWWWWWWWWWW"};
-    int xw[308];//vetor para as coordenadas X das paredes indestrutiveis 'W'
-    int yw[308];//vetor para as coordenadas Y das paredes indestrutiveis 'W'
+    int posicoes_Xw[308];//vetor para as coordenadas X das paredes indestrutiveis 'W'// 308 caso tivessemos apenas paredes indestrutiveis em todo o mapa
+    int posicoes_Yw[308];//vetor para as coordenadas Y das paredes indestrutiveis 'W'
     int *qntdW = 0;//conta quantas paredes indestrutiveis existem no mapa
 
 
     InitWindow(LARGURA, ALTURA, "O jogo");
-    initJogo(&posIx, &posIy, mapa, &jogadorX, &jogadorY, &qntdW, xw, yw);//faz uma leitura do mapa
+    initJogo(&pos_dinamicaPersX, &pos_dinamicaPersY, mapa, &qntdW, posicoes_Xw, posicoes_Yw);//faz uma leitura do mapa e devolve a posicao inicial do jogador
     SetTargetFPS(60);
 
 
@@ -50,10 +48,9 @@ int main()
 
         }else
         {
-            atualizaJogo(&jogadorX, &jogadorY, xw, yw, qntdW);//atualiza o jogo como, por enquanto, a movimentacao do jogador
+            atualizaJogo(&pos_dinamicaPersX, &pos_dinamicaPersY, posicoes_Xw, posicoes_Yw, qntdW);//atualiza o jogo como, por enquanto, a movimentacao do jogador
         }
-
-        desenhaJogo(mapa, xw, yw, &jogadorX, &jogadorY, menu);//reproduz o grafico
+        desenhaJogo(mapa, posicoes_Xw, posicoes_Yw, pos_dinamicaPersX, pos_dinamicaPersY, menu);//reproduz o grafico
 
     }
 
