@@ -3,13 +3,14 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
-#define ARESTA 20
-#define LARGURA 540
-#define ALTURA 260
+#define ARESTA   20
+#define LARGURA  540
+#define ALTURA   260
+
 void initJogo();
 void desenhaMapaEstatico();
 void desenhaJogo();
-int podeMover();
+int  podeMover();
 void atualizaJogo();
 
 int main()
@@ -42,14 +43,14 @@ int main()
     {
         if(IsKeyPressed(KEY_TAB))
             menu = !menu;//se TAB for pressionado abre um menu
-                        // o booleano inicial do menu é invertido
+
         if(menu){
         //menu aberto que não atualiza mais as ações do jogo. AINDA NAO CONFIGURADO
 
-        }else
-        {
+        }else{
             atualizaJogo(&pos_dinamicaPersX, &pos_dinamicaPersY, posicoes_Xw, posicoes_Yw, qntdW);//atualiza o jogo como, por enquanto, a movimentacao do jogador
         }
+
         desenhaJogo(mapa, posicoes_Xw, posicoes_Yw, pos_dinamicaPersX, pos_dinamicaPersY, menu);//reproduz o grafico
 
     }
