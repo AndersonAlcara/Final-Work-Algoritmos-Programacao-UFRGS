@@ -7,20 +7,35 @@
 #define LARGURA  540
 #define ALTURA   260
 
-void initJogo();
-void desenhaMapaEstatico();
-void desenhaJogo();
-int  podeMover();
-void atualizaJogo();
-int moveParaPocao();
-void funcaoPontua();
+typedef struct{
+    int posicoes_Xw[308];//vetor para as coordenadas X das paredes indestrutiveis 'W'// 308 caso tivessemos apenas paredes indestrutiveis em todo o mapa
+    int posicoes_Yw[308];//vetor para as coordenadas Y das paredes indestrutiveis 'W'
+    int qntdW;//conta quantas paredes indestrutiveis existem no mapa
+}PAREDES;
 
+typedef struct{
+    int pos_dinamicaPersX;
+    int pos_dinamicaPersY;
+    int persdx;
+    int persdy;
+}PERSONAGEM;
 
+typedef struct{
+    int posicoes_Xp[308];//vetor para as coordenadas X das poçoes 'P'//308 caso tivessemos apenas poçoes em todo o mapa
+    int posicoes_Yp[308];//vetor para as coordenadas Y das pocoes 'P'
+    int qntdP;//conta quantas pocoes existem no mapa
+}CONSUMIVEL;
 
-void initJogo(int* pos_dinamicaPersX, int* pos_dinamicaPersY, char mapa[][28], int* qntdW, int posicoes_Xw[], int posicoes_Yw[], int* qntdP, int posicoes_Xp[], int posicoes_Yp[])
+typedef struct{
+    int pontuacao;//calcula o SCORE do player
+    int vidas;
+    int nivel;
+    int bombas;
+}CONTADORES;
+
+void posicaoJogador(char mapa[][28], int* pos_dinamicaPersX, int* pos_dinamicaPersY)
 {
     int x = 0, y = 0;
-    int aux = 0, aux2 = 0;
     int i, j;
 
     for(i = 0; i < 11; i++){//percorre a matriz mapa e identifica a posicao inicial do jogador, onde há paredes indestrutiveis e quantas sao elas
@@ -29,14 +44,29 @@ void initJogo(int* pos_dinamicaPersX, int* pos_dinamicaPersY, char mapa[][28], i
                 *pos_dinamicaPersX = x;
                 *pos_dinamicaPersY = y;//guarda a posicao inicial do jogador
             }
+            x = x + ARESTA;
+        }
+        y = y + ARESTA;
+        x = 0;
+    }
+}
+
+void initJogo(char mapa[][28], PAREDES *indestrutiveis, CONSUMIVEL *pocao)
+{
+    int x = 0, y = 0;
+    int aux = 0, aux2 = 0;
+    int i, j;
+
+    for(i = 0; i < 11; i++){//percorre a matriz mapa e identifica a posicao inicial do jogador, onde há paredes indestrutiveis e quantas sao elas
+        for(j = 0; j < 28; j++){
             if(mapa[i][j] == 'W'){
-                posicoes_Xw[aux] = x;
-                posicoes_Yw[aux] = y;//guarda as coordenadas das paredes indestrutiveis
+                indestrutiveis->posicoes_Xw[aux] = x;
+                indestrutiveis->posicoes_Yw[aux] = y;//guarda as coordenadas das paredes indestrutiveis
                 aux++;
             }
              if(mapa[i][j] == 'P'){
-                posicoes_Xp[aux2] = x;
-                posicoes_Yp[aux2] = y;//guarda as coordenadas das pocoes
+                pocao->posicoes_Xp[aux2] = x;
+                pocao->posicoes_Yp[aux2] = y;//guarda as coordenadas das pocoes
                 aux2++;
             }
             x = x + ARESTA;
@@ -44,11 +74,9 @@ void initJogo(int* pos_dinamicaPersX, int* pos_dinamicaPersY, char mapa[][28], i
         y = y + ARESTA;
         x = 0;
     }
-    *qntdW = aux;//quantas paredes indestrutiveis
-    *qntdP = aux2;//quantas pocoes
+    indestrutiveis->qntdW = aux;//quantas paredes indestrutiveis
+    pocao->qntdP = aux2;//quantas pocoes
 }
-
-
 
 void desenhaMapaEstatico(char mapa[][28])
 {
@@ -58,10 +86,10 @@ void desenhaMapaEstatico(char mapa[][28])
      for(i = 0; i < 11; i++){
         for(j = 0; j < 28; j++){
             if(mapa[i][j] == 'W'){
-                DrawRectangle(x, y, ARESTA, ARESTA, BLUE);//desenha um cubo azul onde há parede indestruitivel
+                DrawRectangle(x, y, ARESTA, ARESTA, BLACK);//desenha um cubo azul onde há parede indestruitivel
             }
             if(mapa[i][j] == 'P'){
-                DrawRectangleLines(x, y, ARESTA, ARESTA, PURPLE);//desenha as pocoes
+                DrawRectangle(x, y, ARESTA, ARESTA, MAGENTA);//desenha as pocoes
             }
             x = x + ARESTA; //posição no eixo horizontal do próximo elemento
         }
@@ -70,17 +98,15 @@ void desenhaMapaEstatico(char mapa[][28])
     }
 }
 
-
-
-
-void desenhaJogo(char mapa[][28], int posicoes_Xw[], int posicoes_Yw[], int pos_dinamicaPersX, int pos_dinamicaPersY, int menu, int pontuacao)
+void desenhaJogo(char mapa[][28], int pos_dinamicaPersX, int pos_dinamicaPersY, int menu, CONTADORES info)
 {
     //faz qualquer atualização grafica
     BeginDrawing();
-    ClearBackground(RAYWHITE);
+    ClearBackground(LIGHTGRAY);
     desenhaMapaEstatico(mapa);//desenha o mapa
-    DrawRectangle(pos_dinamicaPersX, pos_dinamicaPersY, ARESTA, ARESTA, ORANGE);//desenha o personagem
+    DrawRectangle(pos_dinamicaPersX, pos_dinamicaPersY, ARESTA, ARESTA, BLUE);//desenha o personagem
     if(menu){//por enquanto só exibe, as opcoes nao sao funcionais ainda
+        DrawRectangle(40, 40, 460, 140, BEIGE);
         DrawText("MENU", 210, 50, 30, BLACK);
         DrawText("(N)Novo Jogo", 210, 100, 20, BLACK);
         DrawText("(C)Carregar Jogo", 210, 125, 20, BLACK);
@@ -88,20 +114,21 @@ void desenhaJogo(char mapa[][28], int posicoes_Xw[], int posicoes_Yw[], int pos_
         DrawText("(Q)Sair do Jogo", 210, 175, 20, BLACK);
         DrawText("(V)Voltar", 210, 200, 20, BLACK);
     }
-    DrawText(TextFormat("Score: %i", pontuacao), 5, 220, 20, BLACK);//vai contando o SCORE do player
+    DrawText(TextFormat("Score: %i", info.pontuacao), 5, 225, 30, GRAY);//vai contando o SCORE do player
+    DrawText(TextFormat("Vidas: %i", info.vidas), 410, 238, 20, BLACK);
+    DrawText(TextFormat("Bombas: %i", info.bombas), 410, 220, 20, BLACK);
+    DrawText(TextFormat("Lvl:%i", info.nivel), 225, 227, 25, RED);
     EndDrawing();
 }
 
-
-
-int podeMover(int pos_dinamicaPersX, int pos_dinamicaPersY, int persdx, int persdy, int posicoes_Xw[], int posicoes_Yw[], int qntdW)
+int podeMover(PERSONAGEM jogador, PAREDES indestrutiveis)
 {
     //ve se o personagem consegue se mover, ou seja, se não vai ocupar o mesmo espaço que outra parede indestrutivel
     int colidiu = 0;
     int i;
 
-    for(i = 0; i < qntdW; i++){
-        if(((pos_dinamicaPersX + persdx)== posicoes_Xw[i])&&((pos_dinamicaPersY + persdy)== posicoes_Yw[i])){
+    for(i = 0; i < indestrutiveis.qntdW; i++){
+        if(((jogador.pos_dinamicaPersX + jogador.persdx)== indestrutiveis.posicoes_Xw[i])&&((jogador.pos_dinamicaPersY + jogador.persdy)== indestrutiveis.posicoes_Yw[i])){
             colidiu = 1;
         }
     }
@@ -110,58 +137,35 @@ int podeMover(int pos_dinamicaPersX, int pos_dinamicaPersY, int persdx, int pers
 }
 
 
-int moveParaPocao(int* pos_dinamicaPersX, int* pos_dinamicaPersY, int persdx, int persdy, int posicoes_Xp[], int posicoes_Yp[], int* qntdP)
+void colhePocao(PERSONAGEM *jogador, char mapa[][28], CONTADORES *info)
+{
+    int j, i;
+
+    jogador->pos_dinamicaPersX += jogador->persdx;
+    jogador->pos_dinamicaPersY += jogador->persdy;//primeiro, atualiza a posicao do jogador
+
+    j = jogador->pos_dinamicaPersX/ARESTA;
+    i = jogador->pos_dinamicaPersY/ARESTA;//Se as posicoes dinamicas são o produto da aresta pela posicao na matriz caracter, logo as posicoes na matriz caracter serao a divisao das posiçoes dinamicas pela aresta.
+
+    mapa[i][j] = ' ';//onde há pocao e o está em cima dessa posicao, nossa matriz caracter tera esse 'P' trocado por um ' ', ou seja, irá liberar um espaço de livre.
+    info->pontuacao = info->pontuacao + 50;//contabiliza 50 pontos por pocao pega
+}
+
+
+int moveParaPocao(PERSONAGEM jogador, CONSUMIVEL *pocao)
 {
     //ve se o personagem vai ocupar as  mesmas coordenadas de uma pocao
-    int colidiu = 0;
+    int colidiu = 1;
     int i;
 
-    for(i = 0; i < *qntdP; i++){
-        if(((*pos_dinamicaPersX + persdx)== posicoes_Xp[i])&&((*pos_dinamicaPersY + persdy)== posicoes_Yp[i])){
-            return colidiu;//vai ocupar
+    for(i = 0; i < pocao->qntdP; i++){
+        if(((jogador.pos_dinamicaPersX + jogador.persdx)== pocao->posicoes_Xp[i])&&((jogador.pos_dinamicaPersY +jogador.persdy)== pocao->posicoes_Yp[i])){
+            colidiu = 0;//vai ocupar
         }
     }
-    return colidiu = 1;
+    return colidiu;
 
 }
 
 
-void atualizaJogo(int* pos_dinamicaPersX, int* pos_dinamicaPersY, int posicoes_Xw[], int posicoes_Yw[], int* qntdW, int* pontuacao, int posicoes_Xp[], int posicoes_Yp[], int* qntdP, char mapa[][28])
-{
-    //deslocamentos do personagem de x e y em escala de 20 a 20
-    int persdx = 0, persdy = 0;
-    int i, j;
 
-    if(IsKeyPressed(KEY_RIGHT)){
-    persdx = ARESTA;
-    }
-    if(IsKeyPressed(KEY_LEFT)){
-    persdx =- ARESTA;
-    }
-    if(IsKeyPressed(KEY_UP)){
-    persdy =- ARESTA;
-    }
-    if(IsKeyPressed(KEY_DOWN)){
-    persdy = ARESTA;
-    }
-    // verifica se é possivel mover o personagem
-    if(moveParaPocao(pos_dinamicaPersX, pos_dinamicaPersY, persdx, persdy, posicoes_Xp, posicoes_Yp, qntdP) == 0){
-        *pos_dinamicaPersX += persdx;
-        *pos_dinamicaPersY += persdy;//primeiro, atualiza a posicao do jogador
-        j = *pos_dinamicaPersX/ARESTA;
-        i = *pos_dinamicaPersY/ARESTA;//Se as posicoes dinamicas são o produto da aresta pela posicao na matriz caracter, logo as posicoes na matriz caracter serao a divisao das posiçoes dinamicas pela aresta.
-        mapa[i][j] = ' ';//onde há pocao e o está em cima dessa posicao, nossa matriz caracter tera esse 'P' trocado por um ' ', ou seja, irá liberar um espaço de livre.
-        *qntdP = *qntdP - 1;//diminui uma poção do nosso mapa
-        *pontuacao = *pontuacao + 50;//contabiliza 50 pontos por pocao pega
-        initJogo(&pos_dinamicaPersX, &pos_dinamicaPersY, mapa, &qntdW, posicoes_Xw, posicoes_Yw, &qntdP, posicoes_Xp, posicoes_Yp);//faz as atualizações na matriz caracter
-
-    }else{
-
-        if(podeMover(*pos_dinamicaPersX, *pos_dinamicaPersY, persdx, persdy, posicoes_Xw, posicoes_Yw, *qntdW)== 0){//colisao simples com paredes indestrutiveis
-            *pos_dinamicaPersX += persdx;
-            *pos_dinamicaPersY += persdy;//atualiza a posicao do jogador
-        }
-
-    }
-
-}
