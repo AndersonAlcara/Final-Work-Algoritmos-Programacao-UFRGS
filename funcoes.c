@@ -43,7 +43,8 @@ typedef struct{
     bool bomba;
     int pos_x_bomba;
     int pos_y_bomba;
-    float tempo_bomba;
+    int contador_frames;
+    bool timer;
 }BOMBA;
 //----------------------------------------------------------------------------
 
@@ -122,13 +123,15 @@ void desenhaMapaEstatico(char mapa[][28])
     }
 }
 
-void desenhaJogo(char mapa[][28], int pos_dinamicaPersX, int pos_dinamicaPersY, int menu, CONTADORES info, BOMBA bomba)
+void desenhaJogo(char mapa[][28], int pos_dinamicaPersX, int pos_dinamicaPersY, int menu, CONTADORES info, BOMBA bomba[], int danoX[], int danoY[], bool explode)
 {
+    int i;
     //faz qualquer atualização grafica
     BeginDrawing();
     ClearBackground(LIGHTGRAY);
     desenhaMapaEstatico(mapa);//desenha o mapa
     DrawRectangle(pos_dinamicaPersX, pos_dinamicaPersY, ARESTA, ARESTA, BLUE);//desenha o personagem
+
     if(menu){//por enquanto só exibe, as opcoes nao sao funcionais ainda
         DrawRectangle(40, 40, 460, 140, BEIGE);
         DrawText("MENU", 210, 50, 30, BLACK);
@@ -138,14 +141,22 @@ void desenhaJogo(char mapa[][28], int pos_dinamicaPersX, int pos_dinamicaPersY, 
         DrawText("(Q)Sair do Jogo", 210, 175, 20, BLACK);
         DrawText("(V)Voltar", 210, 200, 20, BLACK);
     }
-    if(bomba.bomba){
-        DrawRectangle(bomba.pos_x_bomba, bomba.pos_y_bomba, ARESTA, ARESTA, YELLOW);
+
+    for(i = 0; i < 3; i++){//verifica se alguma das 3 bombas está plantada
+        if(bomba[i].bomba==true){//se estiver
+            DrawRectangle(bomba[i].pos_x_bomba, bomba[i].pos_y_bomba, ARESTA, ARESTA, YELLOW);//desenha uma bomba amarela
+        }
+        if(explode == true){//se estiver em sua fase de explosao
+            for(i = 0; i < 5; i++){
+                DrawRectangle(danoX[i], danoY[i], ARESTA, ARESTA, BROWN);//desenha um '+' rapidamente, mostrando o raio de dano
+            }
+        }
     }
 
     DrawText(TextFormat("Score: %i", info.pontuacao), 5, 225, 30, GRAY);//vai contando o SCORE do player
-    DrawText(TextFormat("Vidas: %i", info.vidas), 410, 238, 20, BLACK);
-    DrawText(TextFormat("Bombas: %i", info.bombas), 410, 220, 20, BLACK);
-    DrawText(TextFormat("Lvl:%i", info.nivel), 225, 227, 25, RED);
+    DrawText(TextFormat("Vidas: %i", info.vidas), 410, 238, 20, BLACK);//vai contando a VIDA do player
+    DrawText(TextFormat("Bombas: %i", info.bombas), 410, 220, 20, BLACK);//vai contando o ARSENAL de bombas do player
+    DrawText(TextFormat("Lvl:%i", info.nivel), 225, 227, 25, RED);//informa o nivel em que o jogador se encotnra (??)
     EndDrawing();
 }
 
@@ -155,12 +166,12 @@ int podeMover(PERSONAGEM jogador, PAREDES indestrutiveis, PAREDES destrutiveis)
     int colidiu = 0;
     int i;
 
-    for(i = 0; i < indestrutiveis.qntd; i++){
+    for(i = 0; i < indestrutiveis.qntd; i++){//verifica se há colisao com paredes indestrutiveis
         if(((jogador.pos_dinamicaPersX + jogador.persdx)== indestrutiveis.posicoes_X[i])&&((jogador.pos_dinamicaPersY + jogador.persdy)== indestrutiveis.posicoes_Y[i])){
             colidiu = 1;
         }
     }
-    for(i = 0; i < destrutiveis.qntd; i++){
+    for(i = 0; i < destrutiveis.qntd; i++){//verifica se há colisao com paredes destrutiveis
         if(((jogador.pos_dinamicaPersX + jogador.persdx)== destrutiveis.posicoes_X[i])&&((jogador.pos_dinamicaPersY + jogador.persdy)== destrutiveis.posicoes_Y[i])){
             colidiu = 1;
         }
@@ -170,37 +181,26 @@ int podeMover(PERSONAGEM jogador, PAREDES indestrutiveis, PAREDES destrutiveis)
 
 }
 
-void explosao(int *vidas, char mapa[][28], int posJogadorX, int posJogadorY, int posBombaX, int posBombaY)
+void explosao(int *vidas, char mapa[][28], int posJogadorX, int posJogadorY, int posBombaX, int posBombaY, int danoX[], int danoY[])
 {
-    int danoX[4];
-    int danoY[4];
-    int i, j;
+    int i;
 
-    i = posBombaY/ARESTA;
-    j = posBombaX/ARESTA;
-
+    //define o raio de dano a partir da posicao de onde a bomba foi plantada, ou seja, um quadrado a cima, um abaixo, um a esquerda, e um a direita, e claro, no mesmo lugar em que foi plantada.
     danoX[0] = posBombaX + ARESTA;
     danoX[1] = posBombaX - ARESTA;
     danoX[2] = posBombaX;
     danoX[3] = posBombaX;
+    danoX[4] = posBombaX;
     danoY[0] = posBombaY;
     danoY[1] = posBombaY;
     danoY[2] = posBombaY + ARESTA;
     danoY[3] = posBombaY - ARESTA;
+    danoY[4] = posBombaY;
 
-    for(i = 0; i < 4; i++){
-        if(danoX[i]== posJogadorX && danoY[i]== posJogadorY)
-            *vidas -= 1;
+    for(i = 0; i < 5; i++){
+        if(danoX[i]== posJogadorX && danoY[i]== posJogadorY)//se alguma coordenada do raio de dano coincidir com a posicao do jogador
+            *vidas -= 1;//perde uma vida
     }
-
-    danoX[0] = j + 1;
-    danoX[1] = j - 1;
-    danoX[2] = j;
-    danoX[3] = j;
-    danoY[0] = i;
-    danoY[1] = i;
-    danoY[2] = i + 1;
-    danoY[3] = i - 1;
 
 }
 
@@ -226,7 +226,7 @@ int moveParaPocao(PERSONAGEM jogador, CONSUMIVEL *pocao)
     int i;
 
     for(i = 0; i < pocao->qntdP; i++){
-        if(((jogador.pos_dinamicaPersX + jogador.persdx)== pocao->posicoes_Xp[i])&&((jogador.pos_dinamicaPersY +jogador.persdy)== pocao->posicoes_Yp[i])){
+        if(((jogador.pos_dinamicaPersX + jogador.persdx)== pocao->posicoes_Xp[i])&&((jogador.pos_dinamicaPersY +jogador.persdy)== pocao->posicoes_Yp[i])){//
             colidiu = 0;//vai ocupar
         }
     }
