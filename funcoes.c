@@ -1,16 +1,22 @@
+//Bibliotecas------------------------------------------------------------------
 #include "raylib.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+//----------------------------------------------------------------------------
+
+//Constantes------------------------------------------------------------------
 #define ARESTA   20
 #define LARGURA  540
 #define ALTURA   260
+//----------------------------------------------------------------------------
 
+//Estruturas-------------------------------------------------------------------
 typedef struct{
-    int posicoes_Xw[308];//vetor para as coordenadas X das paredes indestrutiveis 'W'// 308 caso tivessemos apenas paredes indestrutiveis em todo o mapa
-    int posicoes_Yw[308];//vetor para as coordenadas Y das paredes indestrutiveis 'W'
-    int qntdW;//conta quantas paredes indestrutiveis existem no mapa
+    int posicoes_X[308];//vetor para as coordenadas X das paredes indestrutiveis 'W'// 308 caso tivessemos apenas paredes indestrutiveis em todo o mapa
+    int posicoes_Y[308];//vetor para as coordenadas Y das paredes indestrutiveis 'W'
+    int qntd;//conta quantas paredes indestrutiveis existem no mapa
 }PAREDES;
 
 typedef struct{
@@ -33,6 +39,15 @@ typedef struct{
     int bombas;
 }CONTADORES;
 
+typedef struct{
+    bool bomba;
+    int pos_x_bomba;
+    int pos_y_bomba;
+    float tempo_bomba;
+}BOMBA;
+//----------------------------------------------------------------------------
+
+
 void posicaoJogador(char mapa[][28], int* pos_dinamicaPersX, int* pos_dinamicaPersY)
 {
     int x = 0, y = 0;
@@ -51,31 +66,37 @@ void posicaoJogador(char mapa[][28], int* pos_dinamicaPersX, int* pos_dinamicaPe
     }
 }
 
-void initJogo(char mapa[][28], PAREDES *indestrutiveis, CONSUMIVEL *pocao)
+void initJogo(char mapa[][28], PAREDES *indestrutiveis, CONSUMIVEL *pocao, PAREDES *destrutiveis)
 {
     int x = 0, y = 0;
-    int aux = 0, aux2 = 0;
+    int aux = 0, aux2 = 0, aux3 = 0;
     int i, j;
 
     for(i = 0; i < 11; i++){//percorre a matriz mapa e identifica a posicao inicial do jogador, onde há paredes indestrutiveis e quantas sao elas
         for(j = 0; j < 28; j++){
             if(mapa[i][j] == 'W'){
-                indestrutiveis->posicoes_Xw[aux] = x;
-                indestrutiveis->posicoes_Yw[aux] = y;//guarda as coordenadas das paredes indestrutiveis
+                indestrutiveis->posicoes_X[aux] = x;
+                indestrutiveis->posicoes_Y[aux] = y;//guarda as coordenadas das paredes indestrutiveis
                 aux++;
             }
-             if(mapa[i][j] == 'P'){
+            if(mapa[i][j] == 'P'){
                 pocao->posicoes_Xp[aux2] = x;
                 pocao->posicoes_Yp[aux2] = y;//guarda as coordenadas das pocoes
                 aux2++;
+            }
+            if(mapa[i][j] == 'D'){
+                destrutiveis->posicoes_X[aux3] = x;
+                destrutiveis->posicoes_Y[aux3] = y;
+                aux3++;
             }
             x = x + ARESTA;
         }
         y = y + ARESTA;
         x = 0;
     }
-    indestrutiveis->qntdW = aux;//quantas paredes indestrutiveis
+    indestrutiveis->qntd = aux;//quantas paredes indestrutiveis
     pocao->qntdP = aux2;//quantas pocoes
+    destrutiveis->qntd = aux3;
 }
 
 void desenhaMapaEstatico(char mapa[][28])
@@ -91,6 +112,9 @@ void desenhaMapaEstatico(char mapa[][28])
             if(mapa[i][j] == 'P'){
                 DrawRectangle(x, y, ARESTA, ARESTA, MAGENTA);//desenha as pocoes
             }
+            if(mapa[i][j] == 'D'){
+                DrawRectangle(x, y, ARESTA, ARESTA, GRAY);
+            }
             x = x + ARESTA; //posição no eixo horizontal do próximo elemento
         }
         y = y + ARESTA;
@@ -98,7 +122,7 @@ void desenhaMapaEstatico(char mapa[][28])
     }
 }
 
-void desenhaJogo(char mapa[][28], int pos_dinamicaPersX, int pos_dinamicaPersY, int menu, CONTADORES info)
+void desenhaJogo(char mapa[][28], int pos_dinamicaPersX, int pos_dinamicaPersY, int menu, CONTADORES info, BOMBA bomba)
 {
     //faz qualquer atualização grafica
     BeginDrawing();
@@ -114,6 +138,10 @@ void desenhaJogo(char mapa[][28], int pos_dinamicaPersX, int pos_dinamicaPersY, 
         DrawText("(Q)Sair do Jogo", 210, 175, 20, BLACK);
         DrawText("(V)Voltar", 210, 200, 20, BLACK);
     }
+    if(bomba.bomba){
+        DrawRectangle(bomba.pos_x_bomba, bomba.pos_y_bomba, ARESTA, ARESTA, YELLOW);
+    }
+
     DrawText(TextFormat("Score: %i", info.pontuacao), 5, 225, 30, GRAY);//vai contando o SCORE do player
     DrawText(TextFormat("Vidas: %i", info.vidas), 410, 238, 20, BLACK);
     DrawText(TextFormat("Bombas: %i", info.bombas), 410, 220, 20, BLACK);
@@ -121,21 +149,60 @@ void desenhaJogo(char mapa[][28], int pos_dinamicaPersX, int pos_dinamicaPersY, 
     EndDrawing();
 }
 
-int podeMover(PERSONAGEM jogador, PAREDES indestrutiveis)
+int podeMover(PERSONAGEM jogador, PAREDES indestrutiveis, PAREDES destrutiveis)
 {
     //ve se o personagem consegue se mover, ou seja, se não vai ocupar o mesmo espaço que outra parede indestrutivel
     int colidiu = 0;
     int i;
 
-    for(i = 0; i < indestrutiveis.qntdW; i++){
-        if(((jogador.pos_dinamicaPersX + jogador.persdx)== indestrutiveis.posicoes_Xw[i])&&((jogador.pos_dinamicaPersY + jogador.persdy)== indestrutiveis.posicoes_Yw[i])){
+    for(i = 0; i < indestrutiveis.qntd; i++){
+        if(((jogador.pos_dinamicaPersX + jogador.persdx)== indestrutiveis.posicoes_X[i])&&((jogador.pos_dinamicaPersY + jogador.persdy)== indestrutiveis.posicoes_Y[i])){
             colidiu = 1;
         }
     }
+    for(i = 0; i < destrutiveis.qntd; i++){
+        if(((jogador.pos_dinamicaPersX + jogador.persdx)== destrutiveis.posicoes_X[i])&&((jogador.pos_dinamicaPersY + jogador.persdy)== destrutiveis.posicoes_Y[i])){
+            colidiu = 1;
+        }
+    }
+
     return colidiu;
 
 }
 
+void explosao(int *vidas, char mapa[][28], int posJogadorX, int posJogadorY, int posBombaX, int posBombaY)
+{
+    int danoX[4];
+    int danoY[4];
+    int i, j;
+
+    i = posBombaY/ARESTA;
+    j = posBombaX/ARESTA;
+
+    danoX[0] = posBombaX + ARESTA;
+    danoX[1] = posBombaX - ARESTA;
+    danoX[2] = posBombaX;
+    danoX[3] = posBombaX;
+    danoY[0] = posBombaY;
+    danoY[1] = posBombaY;
+    danoY[2] = posBombaY + ARESTA;
+    danoY[3] = posBombaY - ARESTA;
+
+    for(i = 0; i < 4; i++){
+        if(danoX[i]== posJogadorX && danoY[i]== posJogadorY)
+            *vidas -= 1;
+    }
+
+    danoX[0] = j + 1;
+    danoX[1] = j - 1;
+    danoX[2] = j;
+    danoX[3] = j;
+    danoY[0] = i;
+    danoY[1] = i;
+    danoY[2] = i + 1;
+    danoY[3] = i - 1;
+
+}
 
 void colhePocao(PERSONAGEM *jogador, char mapa[][28], CONTADORES *info)
 {
@@ -166,6 +233,3 @@ int moveParaPocao(PERSONAGEM jogador, CONSUMIVEL *pocao)
     return colidiu;
 
 }
-
-
-
