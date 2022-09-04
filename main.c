@@ -48,10 +48,18 @@ typedef struct{
     float contador_frames;//conta frames por segundo
     bool timer;//o timer que calcula o periodo em que a bomba está ativa, e tb de quando ela explode
 }BOMBA;
+
+typedef struct{
+    int posX, posY;
+    int deslX, deslY;
+}MONSTROS;
+
 //----------------------------------------------------------------------------
 
 
 //Protótipos------------------------------------------------------------------
+void inicializaMonstro();
+void inicializaSer();
 void colhePocao();
 void posicaoJogador();
 void initJogo();
@@ -94,19 +102,23 @@ int main()
     CONSUMIVEL pocao;
     pocao.qntdP = 0;
 
+    //quantidade de monstros e seres
+    int contaseres = 0;
+    int contamonstros = 0;
+
     //menu
     bool menu = false;//comeca com o menu fechado
 
     //mapa
     char mapa[11][28] =  {"WWWWWWWWWWWWWWWWWWWWWWWWWWW",
-                          "WJ P  WWWW PPPPP WWWW  P  W",
-                          "W          WWWWW          W",
-                          "W       DDDDDDDDDD        W",
+                          "W PP  WWWW PPPPP WWWW DP  W",
+                          "WP         WWWWW       D  W",
+                          "W  P    DDDDDDDDDDD       W",
+                          "W  PP  DDDDDDDDDDDDDDDDP  W",
+                          "W      DDD          DDDDD W",
                           "W  P  WWWWWWWWWWWWWWW  P  W",
-                          "W                         W",
-                          "W  P  WWWWWWWWWWWWWWW  P  W",
-                          "W                         W",
-                          "WWWW      DDDDDDD      WWWW",
+                          "W            KM          JW",
+                          "WWWW WWW  DDDDDDD  M K WWWW",
                           "WWWWWPP  WWWWWWWWW  PPWWWWW",
                           "WWWWWWWWWWWWWWWWWWWWWWWWWWW"};
 
@@ -119,8 +131,14 @@ int main()
 
 
     InitWindow(LARGURA, ALTURA, "O jogo");
-    posicaoJogador(mapa, &(jogador.pos_dinamicaPersX), &(jogador.pos_dinamicaPersY));
-    initJogo(mapa, &indestrutiveis, &pocao, &destrutiveis);//faz uma leitura do mapa e devolve a posicao inicial do jogador
+    posicaoJogador(mapa, &(jogador.pos_dinamicaPersX), &(jogador.pos_dinamicaPersY), &contaseres, &contamonstros);
+
+    MONSTROS seres[contaseres], monstros[contamonstros];
+
+    inicializaSer(&seres, mapa);
+    inicializaMonstro(&monstros, mapa);
+
+    initJogo(mapa, &indestrutiveis, &pocao, &destrutiveis);
     SetTargetFPS(60);
 
     //main game loop
@@ -128,8 +146,9 @@ int main()
     {
         explode = false;//explosao desligada
 
-        if(IsKeyPressed(KEY_TAB))
+        if(IsKeyPressed(KEY_TAB)){
             menu = !menu;//se TAB for pressionado abre um menu
+        }
 
         if(menu){
             //algumas opçoes do menu (ainda não configuradas)
@@ -180,7 +199,7 @@ int main()
                     bomba[i].bomba = true;//a bomba esta plantada
                 }
                 if(bomba[i].contador_frames==180){//quando chega ao final
-                    explosao(&(info.vidas), mapa, jogador.pos_dinamicaPersX, jogador.pos_dinamicaPersY, bomba[i].pos_x_bomba, bomba[i].pos_y_bomba, danoX, danoY);//cria a explosao de dano
+                    explosao(&(info.vidas), mapa, jogador.pos_dinamicaPersX, jogador.pos_dinamicaPersY, bomba[i].pos_x_bomba, bomba[i].pos_y_bomba, danoX, danoY, &(info.pontuacao));//cria a explosao de dano
                     bomba[i].bomba = false;//a bomba passa a não existir mais
                     explode = true;//sinaliza que ocorre uma explosao grafica
                     info.bombas+=1;//re-abastece o arsenal
@@ -213,7 +232,7 @@ int main()
 
         }
 
-        desenhaJogo(mapa, jogador.pos_dinamicaPersX, jogador.pos_dinamicaPersY, menu, info, bomba, danoX, danoY, explode);//reproduz o grafico
+        desenhaJogo(mapa, jogador, menu, info, bomba, danoX, danoY, explode, seres, monstros, contamonstros, contaseres);//reproduz o grafico
 
     }
 

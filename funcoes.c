@@ -46,10 +46,14 @@ typedef struct{
     int contador_frames;
     bool timer;
 }BOMBA;
+
+typedef struct{
+    int posX, posY;
+    int deslX, deslY;
+}MONSTROS;
 //----------------------------------------------------------------------------
 
-
-void posicaoJogador(char mapa[][28], int* pos_dinamicaPersX, int* pos_dinamicaPersY)
+void posicaoJogador(char mapa[][28], int* pos_dinamicaPersX, int* pos_dinamicaPersY, int *contaseres, int *contamonstros)
 {
     int x = 0, y = 0;
     int i, j;
@@ -60,11 +64,57 @@ void posicaoJogador(char mapa[][28], int* pos_dinamicaPersX, int* pos_dinamicaPe
                 *pos_dinamicaPersX = x;
                 *pos_dinamicaPersY = y;//guarda a posicao inicial do jogador
             }
-            x = x + ARESTA;
+            if(mapa[i][j] == 'K'){
+                *contaseres+= 1;
+            }
+            if(mapa[i][j] == 'M'){
+                *contamonstros+= 1;
+            }
+            x = x + ARESTA;//vai uma coluna pro lado
         }
-        y = y + ARESTA;
-        x = 0;
+        y = y + ARESTA;//vai uma linha pra baixo
+        x = 0;//e volta para a primeira coluna
     }
+}
+
+void inicializaMonstro(MONSTROS monstros[], char mapa[][28])
+{
+    int x = 0, y = 0, aux = 0;
+    int i, j;
+
+    for(i = 0; i < 11; i++){
+        for(j = 0; j < 28; j++){
+            if(mapa[i][j] == 'M'){
+                monstros[aux].posX = x;
+                monstros[aux].posY = y;
+                aux++;
+            }
+            x = x + ARESTA;//vai uma coluna pro lado
+        }
+        y = y + ARESTA;//vai uma linha pra baixo
+        x = 0;//e volta para a primeira coluna
+    }
+
+}
+
+void inicializaSer(MONSTROS seres[], char mapa[][28])
+{
+    int x = 0, y = 0, aux = 0;
+    int i, j;
+
+    for(i = 0; i < 11; i++){
+        for(j = 0; j < 28; j++){
+            if(mapa[i][j] == 'K'){
+                seres[aux].posX = x;
+                seres[aux].posY = y;
+                aux++;
+            }
+            x = x + ARESTA;//vai uma coluna pro lado
+        }
+        y = y + ARESTA;//vai uma linha pra baixo
+        x = 0;//e volta para a primeira coluna
+    }
+
 }
 
 void initJogo(char mapa[][28], PAREDES *indestrutiveis, CONSUMIVEL *pocao, PAREDES *destrutiveis)
@@ -97,7 +147,7 @@ void initJogo(char mapa[][28], PAREDES *indestrutiveis, CONSUMIVEL *pocao, PARED
     }
     indestrutiveis->qntd = aux;//quantas paredes indestrutiveis
     pocao->qntdP = aux2;//quantas pocoes
-    destrutiveis->qntd = aux3;
+    destrutiveis->qntd = aux3;//quantas paredes destrutiveis
 }
 
 void desenhaMapaEstatico(char mapa[][28])
@@ -114,7 +164,7 @@ void desenhaMapaEstatico(char mapa[][28])
                 DrawRectangle(x, y, ARESTA, ARESTA, MAGENTA);//desenha as pocoes
             }
             if(mapa[i][j] == 'D'){
-                DrawRectangle(x, y, ARESTA, ARESTA, GRAY);
+                DrawRectangle(x, y, ARESTA, ARESTA, GRAY);//desenha paredes destrutiveis
             }
             x = x + ARESTA; //posição no eixo horizontal do próximo elemento
         }
@@ -123,24 +173,19 @@ void desenhaMapaEstatico(char mapa[][28])
     }
 }
 
-void desenhaJogo(char mapa[][28], int pos_dinamicaPersX, int pos_dinamicaPersY, int menu, CONTADORES info, BOMBA bomba[], int danoX[], int danoY[], bool explode)
+void desenhaJogo(char mapa[][28], PERSONAGEM jogador, int menu, CONTADORES info, BOMBA bomba[], int danoX[], int danoY[], bool explode, MONSTROS seres[], MONSTROS monstros[], int contamonstros, int contaseres)
 {
     int i;
     //faz qualquer atualização grafica
     BeginDrawing();
     ClearBackground(LIGHTGRAY);
     desenhaMapaEstatico(mapa);//desenha o mapa
-    DrawRectangle(pos_dinamicaPersX, pos_dinamicaPersY, ARESTA, ARESTA, BLUE);//desenha o personagem
+    DrawRectangle(jogador.pos_dinamicaPersX, jogador.pos_dinamicaPersY, ARESTA, ARESTA, BLUE);//desenha o personagem
 
-    if(menu){//por enquanto só exibe, as opcoes nao sao funcionais ainda
-        DrawRectangle(40, 40, 460, 140, BEIGE);
-        DrawText("MENU", 210, 50, 30, BLACK);
-        DrawText("(N)Novo Jogo", 210, 100, 20, BLACK);
-        DrawText("(C)Carregar Jogo", 210, 125, 20, BLACK);
-        DrawText("(S)Salvar Jogo", 210, 150, 20, BLACK);
-        DrawText("(Q)Sair do Jogo", 210, 175, 20, BLACK);
-        DrawText("(V)Voltar", 210, 200, 20, BLACK);
-    }
+    for(i = 0; i < contaseres; i++)
+        DrawRectangle(seres[i].posX, seres[i].posY, ARESTA, ARESTA, ORANGE);
+    for(i = 0; i < contamonstros; i++)
+        DrawRectangle(monstros[i].posX, monstros[i].posY, ARESTA, ARESTA, RED);
 
     for(i = 0; i < 3; i++){//verifica se alguma das 3 bombas está plantada
         if(bomba[i].bomba==true){//se estiver
@@ -151,6 +196,15 @@ void desenhaJogo(char mapa[][28], int pos_dinamicaPersX, int pos_dinamicaPersY, 
                 DrawRectangle(danoX[i], danoY[i], ARESTA, ARESTA, BROWN);//desenha um '+' rapidamente, mostrando o raio de dano
             }
         }
+    }
+    if(menu){//por enquanto só exibe, as opcoes nao sao funcionais ainda
+        DrawRectangle(40, 40, 460, 140, BEIGE);
+        DrawText("MENU", 210, 50, 30, BLACK);
+        DrawText("(N)Novo Jogo", 210, 100, 20, BLACK);
+        DrawText("(C)Carregar Jogo", 210, 125, 20, BLACK);
+        DrawText("(S)Salvar Jogo", 210, 150, 20, BLACK);
+        DrawText("(Q)Sair do Jogo", 210, 175, 20, BLACK);
+        DrawText("(V)Voltar", 210, 200, 20, BLACK);
     }
 
     DrawText(TextFormat("Score: %i", info.pontuacao), 5, 225, 30, GRAY);//vai contando o SCORE do player
@@ -181,7 +235,7 @@ int podeMover(PERSONAGEM jogador, PAREDES indestrutiveis, PAREDES destrutiveis)
 
 }
 
-void explosao(int *vidas, char mapa[][28], int posJogadorX, int posJogadorY, int posBombaX, int posBombaY, int danoX[], int danoY[])
+void explosao(int *vidas, char mapa[][28], int posJogadorX, int posJogadorY, int posBombaX, int posBombaY, int danoX[], int danoY[], int *pontuacao)
 {
     int i;
 
@@ -198,8 +252,14 @@ void explosao(int *vidas, char mapa[][28], int posJogadorX, int posJogadorY, int
     danoY[4] = posBombaY;
 
     for(i = 0; i < 5; i++){
-        if(danoX[i]== posJogadorX && danoY[i]== posJogadorY)//se alguma coordenada do raio de dano coincidir com a posicao do jogador
+        if(danoX[i]== posJogadorX && danoY[i]== posJogadorY){//se alguma coordenada do raio de dano coincidir com a posicao do jogador
             *vidas -= 1;//perde uma vida
+            if(*pontuacao>=100)
+                *pontuacao -= 100;//se tiver pontos suficientes para perder, perde
+            else
+                if(*pontuacao<100)//se não tiver pontos suficientes, zera o score, visando não torná-lo negativo
+                    *pontuacao = 0;
+        }
     }
 
 }
@@ -217,7 +277,6 @@ void colhePocao(PERSONAGEM *jogador, char mapa[][28], CONTADORES *info)
     mapa[i][j] = ' ';//onde há pocao e o está em cima dessa posicao, nossa matriz caracter tera esse 'P' trocado por um ' ', ou seja, irá liberar um espaço de livre.
     info->pontuacao = info->pontuacao + 50;//contabiliza 50 pontos por pocao pega
 }
-
 
 int moveParaPocao(PERSONAGEM jogador, CONSUMIVEL *pocao)
 {
