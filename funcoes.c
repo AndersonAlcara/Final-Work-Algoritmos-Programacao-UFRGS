@@ -65,10 +65,10 @@ void posicaoJogador(char mapa[][28], int* pos_dinamicaPersX, int* pos_dinamicaPe
                 *pos_dinamicaPersY = y;//guarda a posicao inicial do jogador
             }
             if(mapa[i][j] == 'K'){
-                *contaseres+= 1;
+                *contaseres+= 1;//achou um ser
             }
             if(mapa[i][j] == 'M'){
-                *contamonstros+= 1;
+                *contamonstros+= 1;//achou um monstro
             }
             x = x + ARESTA;//vai uma coluna pro lado
         }
@@ -86,7 +86,7 @@ void inicializaMonstro(MONSTROS monstros[], char mapa[][28])
         for(j = 0; j < 28; j++){
             if(mapa[i][j] == 'M'){
                 monstros[aux].posX = x;
-                monstros[aux].posY = y;
+                monstros[aux].posY = y;//guarda as coordenadas desse monstro em um espaço do vetor
                 aux++;
             }
             x = x + ARESTA;//vai uma coluna pro lado
@@ -106,7 +106,7 @@ void inicializaSer(MONSTROS seres[], char mapa[][28])
         for(j = 0; j < 28; j++){
             if(mapa[i][j] == 'K'){
                 seres[aux].posX = x;
-                seres[aux].posY = y;
+                seres[aux].posY = y;//guarda as coordenadas desse ser em um espaço do vetor
                 aux++;
             }
             x = x + ARESTA;//vai uma coluna pro lado
@@ -137,7 +137,7 @@ void initJogo(char mapa[][28], PAREDES *indestrutiveis, CONSUMIVEL *pocao, PARED
             }
             if(mapa[i][j] == 'D'){
                 destrutiveis->posicoes_X[aux3] = x;
-                destrutiveis->posicoes_Y[aux3] = y;
+                destrutiveis->posicoes_Y[aux3] = y;//guarda as coordenadas das paredes destrutiveis
                 aux3++;
             }
             x = x + ARESTA;
@@ -183,9 +183,9 @@ void desenhaJogo(char mapa[][28], PERSONAGEM jogador, int menu, CONTADORES info,
     DrawRectangle(jogador.pos_dinamicaPersX, jogador.pos_dinamicaPersY, ARESTA, ARESTA, BLUE);//desenha o personagem
 
     for(i = 0; i < contaseres; i++)
-        DrawRectangle(seres[i].posX, seres[i].posY, ARESTA, ARESTA, ORANGE);
+        DrawRectangle(seres[i].posX, seres[i].posY, ARESTA, ARESTA, ORANGE);//desenha os seres
     for(i = 0; i < contamonstros; i++)
-        DrawRectangle(monstros[i].posX, monstros[i].posY, ARESTA, ARESTA, RED);
+        DrawRectangle(monstros[i].posX, monstros[i].posY, ARESTA, ARESTA, RED);//desenha os monstros
 
     for(i = 0; i < 3; i++){//verifica se alguma das 3 bombas está plantada
         if(bomba[i].bomba==true){//se estiver
@@ -214,7 +214,7 @@ void desenhaJogo(char mapa[][28], PERSONAGEM jogador, int menu, CONTADORES info,
     EndDrawing();
 }
 
-int podeMover(PERSONAGEM jogador, PAREDES indestrutiveis, PAREDES destrutiveis)
+int podeMover(PERSONAGEM jogador, PAREDES indestrutiveis, PAREDES destrutiveis, BOMBA bomba[])
 {
     //ve se o personagem consegue se mover, ou seja, se não vai ocupar o mesmo espaço que outra parede indestrutivel
     int colidiu = 0;
@@ -231,14 +231,17 @@ int podeMover(PERSONAGEM jogador, PAREDES indestrutiveis, PAREDES destrutiveis)
         }
     }
 
+    for(i = 0; i < 3; i++){
+        if(bomba[i].bomba==true)
+            if(((jogador.pos_dinamicaPersX + jogador.persdx)== bomba[i].pos_x_bomba)&&(jogador.pos_dinamicaPersY + jogador.persdy)== bomba[i].pos_y_bomba)
+                colidiu = 1;
+    }
     return colidiu;
-
 }
 
 void explosao(int *vidas, char mapa[][28], int posJogadorX, int posJogadorY, int posBombaX, int posBombaY, int danoX[], int danoY[], int *pontuacao)
 {
     int i;
-
     //define o raio de dano a partir da posicao de onde a bomba foi plantada, ou seja, um quadrado a cima, um abaixo, um a esquerda, e um a direita, e claro, no mesmo lugar em que foi plantada.
     danoX[0] = posBombaX + ARESTA;
     danoX[1] = posBombaX - ARESTA;
@@ -283,12 +286,10 @@ int moveParaPocao(PERSONAGEM jogador, CONSUMIVEL *pocao)
     //ve se o personagem vai ocupar as  mesmas coordenadas de uma pocao
     int colidiu = 1;
     int i;
-
     for(i = 0; i < pocao->qntdP; i++){
         if(((jogador.pos_dinamicaPersX + jogador.persdx)== pocao->posicoes_Xp[i])&&((jogador.pos_dinamicaPersY +jogador.persdy)== pocao->posicoes_Yp[i])){//
             colidiu = 0;//vai ocupar
         }
     }
     return colidiu;
-
 }

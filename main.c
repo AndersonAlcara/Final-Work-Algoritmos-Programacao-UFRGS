@@ -6,13 +6,12 @@
 #include <math.h>
 //----------------------------------------------------------------------------
 
-
 //Constantes------------------------------------------------------------------
 #define ARESTA   20
 #define LARGURA  540
 #define ALTURA   260
+#define PONTUACAO_MAX 10
 //----------------------------------------------------------------------------
-
 
 //Estruturas-------------------------------------------------------------------
 typedef struct{
@@ -56,7 +55,6 @@ typedef struct{
 
 //----------------------------------------------------------------------------
 
-
 //Protótipos------------------------------------------------------------------
 void inicializaMonstro();
 void inicializaSer();
@@ -70,12 +68,14 @@ int  moveParaPocao();
 void explosao();
 //----------------------------------------------------------------------------
 
-
 //Funcão Principal------------------------------------------------------------
 int main()
 {
     //variaveis auxiliares
     int i, j, k;
+
+    //bônus
+    bool vida_extra = false;
 
     //bomba
     BOMBA bomba[3];
@@ -111,15 +111,15 @@ int main()
 
     //mapa
     char mapa[11][28] =  {"WWWWWWWWWWWWWWWWWWWWWWWWWWW",
-                          "W PP  WWWW PPPPP WWWW DP  W",
-                          "WP         WWWWW       D  W",
-                          "W  P    DDDDDDDDDDD       W",
-                          "W  PP  DDDDDDDDDDDDDDDDP  W",
-                          "W      DDD          DDDDD W",
-                          "W  P  WWWWWWWWWWWWWWW  P  W",
-                          "W            KM          JW",
-                          "WWWW WWW  DDDDDDD  M K WWWW",
-                          "WWWWWPP  WWWWWWWWW  PPWWWWW",
+                          "WP D DD DDD DDD DDD DD D PW",
+                          "W D  D   D   D   D   D KD W",
+                          "WD W D W D W D W D W D W DW",
+                          "WDPPPPPPPPPPPPPPPPPPPPPPPDW",
+                          "WDW W W W W WJW W W W W WDW",
+                          "WD                       DW",
+                          "WD W D W D W D W D W D W DW",
+                          "W D  D   D   D   D   D MD W",
+                          "WP D DD DDD DDD DDD DD D PW",
                           "WWWWWWWWWWWWWWWWWWWWWWWWWWW"};
 
     //atualiza contadores
@@ -131,14 +131,15 @@ int main()
 
 
     InitWindow(LARGURA, ALTURA, "O jogo");
-    posicaoJogador(mapa, &(jogador.pos_dinamicaPersX), &(jogador.pos_dinamicaPersY), &contaseres, &contamonstros);
 
-    MONSTROS seres[contaseres], monstros[contamonstros];
+    posicaoJogador(mapa, &(jogador.pos_dinamicaPersX), &(jogador.pos_dinamicaPersY), &contaseres, &contamonstros);//descobre coordenadas do jogador e o número de monstros/seres
 
-    inicializaSer(&seres, mapa);
-    inicializaMonstro(&monstros, mapa);
+    MONSTROS seres[contaseres], monstros[contamonstros];//sabendo já o número de monstros/seres, é possível definir o limite dos vetores
 
-    initJogo(mapa, &indestrutiveis, &pocao, &destrutiveis);
+    inicializaSer(&seres, mapa);//inicializa as posicoes dos seres
+    inicializaMonstro(&monstros, mapa);//inicializa as posicoes dos monstros
+    initJogo(mapa, &indestrutiveis, &pocao, &destrutiveis);//inicializa paredes e poções
+
     SetTargetFPS(60);
 
     //main game loop
@@ -219,17 +220,22 @@ int main()
                 }
             }
 
-            if(podeMover(jogador, indestrutiveis, destrutiveis)== 0){//se puder mover
+            if(podeMover(jogador, indestrutiveis, destrutiveis, bomba)== 0){//se puder mover
                 if(moveParaPocao(jogador, &pocao)== 0){//se for para cima de uma pocao
                     colhePocao(&jogador, mapa, &(info.pontuacao));//realiza o processo de captura da pocao
-                    pocao.qntdP -= 1;
-                    initJogo(mapa, &indestrutiveis, &pocao, &destrutiveis);
+                    pocao.qntdP -= 1;//diminui uma pocao do vetor de pocoes
+                    initJogo(mapa, &indestrutiveis, &pocao, &destrutiveis);//reinicializa o mapa
                 }else{
                     jogador.pos_dinamicaPersX += jogador.persdx;
                     jogador.pos_dinamicaPersY += jogador.persdy;//caso contrario, só desloca o personagem
                 }
             }
-
+            for(i = 1; i < PONTUACAO_MAX; i++){
+                if((info.pontuacao>=(1000*i))&&(vida_extra==false)){
+                    vida_extra = !vida_extra;
+                    info.vidas+=1;
+                }
+            }
         }
 
         desenhaJogo(mapa, jogador, menu, info, bomba, danoX, danoY, explode, seres, monstros, contamonstros, contaseres);//reproduz o grafico
