@@ -48,8 +48,10 @@ typedef struct{
 }BOMBA;
 
 typedef struct{
+    int desl;
+    int qtd_passos;
+    char direcao_desl;
     int posX, posY;
-    int deslX, deslY;
 }MONSTROS;
 //----------------------------------------------------------------------------
 
@@ -183,9 +185,9 @@ void desenhaJogo(char mapa[][28], PERSONAGEM jogador, int menu, CONTADORES info,
     DrawRectangle(jogador.pos_dinamicaPersX, jogador.pos_dinamicaPersY, ARESTA, ARESTA, BLUE);//desenha o personagem
 
     for(i = 0; i < contaseres; i++)
-        DrawRectangle(seres[i].posX, seres[i].posY, ARESTA, ARESTA, ORANGE);//desenha os seres
+        DrawRectangle(seres[i].posX*ARESTA, seres[i].posY*ARESTA, ARESTA, ARESTA, ORANGE);//desenha os seres
     for(i = 0; i < contamonstros; i++)
-        DrawRectangle(monstros[i].posX, monstros[i].posY, ARESTA, ARESTA, RED);//desenha os monstros
+        DrawRectangle(monstros[i].posX*ARESTA, monstros[i].posY*ARESTA, ARESTA, ARESTA, RED);//desenha os monstros
 
     for(i = 0; i < 3; i++){//verifica se alguma das 3 bombas está plantada
         if(bomba[i].bomba==true){//se estiver

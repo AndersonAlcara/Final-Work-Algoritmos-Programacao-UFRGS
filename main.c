@@ -49,13 +49,20 @@ typedef struct{
 }BOMBA;
 
 typedef struct{
+    int desl;
+    int qtd_passos;
+    char direcao_desl;
     int posX, posY;
-    int deslX, deslY;
 }MONSTROS;
 
 //----------------------------------------------------------------------------
 
 //Protótipos------------------------------------------------------------------
+bool canMove(int pos_x, int pos_y, int desl, char mapa[][28], char direcao);
+int geraDeslocamento();
+char geraDirecao();
+void moveCriaturas(MONSTROS monstros[], MONSTROS seres[], int contamonstros, int contaseres, char mapa[][28]);
+void iniCriaturas(MONSTROS monstros[], MONSTROS seres[], int contamonstros, int contaseres, char mapa[][28]);
 void inicializaMonstro();
 void inicializaSer();
 void colhePocao();
@@ -110,41 +117,45 @@ int main()
     bool menu = false;//comeca com o menu fechado
 
     //mapa
-    char mapa[11][28] =  {"WWWWWWWWWWWWWWWWWWWWWWWWWWW",
-                          "WP D DD DDD DDD DDD DD D PW",
-                          "W D  D   D   D   D   D KD W",
-                          "WD W D W D W D W D W D W DW",
-                          "WDPPPPPPPPPPPPPPPPPPPPPPPDW",
-                          "WDW W W W W WJW W W W W WDW",
-                          "WD                       DW",
-                          "WD W D W D W D W D W D W DW",
-                          "W D  D   D   D   D   D MD W",
-                          "WP D DD DDD DDD DDD DD D PW",
-                          "WWWWWWWWWWWWWWWWWWWWWWWWWWW"};
+    char mapa[11][28];
+    int contador_de_niveis = 1;
+    bool trocaNivel = true;
 
     //atualiza contadores
     CONTADORES info;
     info.bombas = 3;
-    info.nivel = 10; //??
     info.pontuacao = 0;
     info.vidas = 3;
 
 
     InitWindow(LARGURA, ALTURA, "O jogo");
-
-    posicaoJogador(mapa, &(jogador.pos_dinamicaPersX), &(jogador.pos_dinamicaPersY), &contaseres, &contamonstros);//descobre coordenadas do jogador e o número de monstros/seres
-
-    MONSTROS seres[contaseres], monstros[contamonstros];//sabendo já o número de monstros/seres, é possível definir o limite dos vetores
-
-    inicializaSer(&seres, mapa);//inicializa as posicoes dos seres
-    inicializaMonstro(&monstros, mapa);//inicializa as posicoes dos monstros
-    initJogo(mapa, &indestrutiveis, &pocao, &destrutiveis);//inicializa paredes e poções
-
     SetTargetFPS(60);
 
     //main game loop
     while (!WindowShouldClose())
     {
+         if(trocaNivel == true){
+             trocaNivel = !trocaNivel;
+             FILE* fase;
+             char nivel[11];
+             info.nivel = contador_de_niveis;
+             sprintf(nivel, "nivel%i.txt", contador_de_niveis);
+             fase = fopen(nivel, "r");
+             if(fase == NULL)
+                printf("Erro na abertura do arquivo.");
+             else{
+                for(i = 0; i < 11; i++)
+                    for(j = 0; j < 28; j++)
+                        mapa[i][j] = getc(fase);
+             }
+            posicaoJogador(mapa, &(jogador.pos_dinamicaPersX), &(jogador.pos_dinamicaPersY), &contaseres, &contamonstros);//descobre coordenadas do jogador e o número de monstros/seres
+            MONSTROS seres[contaseres], monstros[contamonstros];//sabendo já o número de monstros/seres, é possível definir o limite dos vetores
+            iniCriaturas(monstros, seres, contamonstros, contaseres, mapa);
+            initJogo(mapa, &indestrutiveis, &pocao, &destrutiveis);//inicializa paredes e poções
+
+         }
+
+        MONSTROS seres[contaseres], monstros[contamonstros];
         explode = false;//explosao desligada
 
         if(IsKeyPressed(KEY_TAB)){
@@ -236,6 +247,7 @@ int main()
                     info.vidas+=1;
                 }
             }
+            moveCriaturas(monstros, seres, contamonstros, contaseres, mapa);
         }
 
         desenhaJogo(mapa, jogador, menu, info, bomba, danoX, danoY, explode, seres, monstros, contamonstros, contaseres);//reproduz o grafico
@@ -245,4 +257,112 @@ int main()
     CloseWindow();
 
     return 0;
+}
+void iniCriaturas(MONSTROS monstros[], MONSTROS seres[], int contamonstros, int contaseres, char mapa[][28]){
+
+    int linha, coluna;
+    int i, j;
+    i = 0;
+    j = 0;
+
+    for(linha = 0; linha < 11; linha++)
+        for(coluna = 0; coluna < 28; coluna++)
+            // acha posicao inicial x e y de cada criatura
+            if(mapa[linha][coluna] == 'M'){
+                monstros[i].posX = coluna;
+                monstros[i].posY = linha;
+                i++;
+            }
+            else
+                if(mapa[linha][coluna] == 'K'){
+                    seres[j].posX = coluna;
+                    seres[j].posY = linha;
+                    j++;
+                }
+
+    // inicializar qtd passos em zero
+    for(i = 0; i < contamonstros; i++)
+        monstros[i].qtd_passos = 0;
+    for(i = 0; i < contaseres; i++)
+        seres[i].qtd_passos = 0;
+
+}
+ void moveCriaturas(MONSTROS monstros[], MONSTROS seres[], int contamonstros, int contaseres, char mapa[][28]){
+     int i;
+     //char direcao;
+     //int desl;
+
+     // MONSTROS
+     for(i = 0; i < contamonstros; i++){
+        // gera direcao de movimento do monstro i
+        if(monstros[i].qtd_passos == 0){
+            monstros[i].direcao_desl = geraDirecao();
+            monstros[i].desl = geraDeslocamento();
+        }
+        // verifica se pode mover e se qtdpassos está de acordo
+        if(canMove(monstros[i].posX, monstros[i].posY, monstros[i].desl, mapa, monstros[i].direcao_desl)&&(monstros[i].qtd_passos < 5)){
+            if(monstros[i].direcao_desl == 'x')
+                monstros[i].posX = monstros[i].posX + monstros[i].desl;
+            else
+                monstros[i].posY = monstros[i].posY + monstros[i].desl;
+            monstros[i].qtd_passos = monstros[i].qtd_passos + 1;
+        }
+        else // se nao estiver de acordo zera contador de passos e gera novo deslocamento lá em cima
+            monstros[i].qtd_passos = 0;
+     }
+     // SERES
+     for(i = 0; i < contaseres; i++){
+        // gera direcao de movimento do ser i
+        if(seres[i].qtd_passos == 0){
+            seres[i].direcao_desl = geraDirecao();
+            seres[i].desl = geraDeslocamento();
+        }
+        if(canMove(seres[i].posX, seres[i].posY, seres[i].desl, mapa, seres[i].direcao_desl)&&(seres[i].qtd_passos < 5)){
+            if(seres[i].direcao_desl == 'x')
+                seres[i].posX = seres[i].posX + seres[i].desl;
+            else
+                seres[i].posY = seres[i].posY + seres[i].desl;
+            seres[i].qtd_passos = seres[i].qtd_passos + 1;
+        }
+        else
+            seres[i].qtd_passos = 0;
+     }
+}
+// gera direcao em que monstros ou seres irao se mover na matriz/mapa
+char geraDirecao(){
+
+    char direcaoNaMatriz;
+    int valorXY;
+
+    valorXY = GetRandomValue(0,1);
+    if(valorXY)
+        direcaoNaMatriz = 'x';
+    else
+        direcaoNaMatriz = 'y';
+    return direcaoNaMatriz;
+
+}
+// gera deslocamento, dado a direcao atual e o deslocamento atual
+// retorna novo deslocamento
+int geraDeslocamento(){
+    int deslocamento;
+    do{
+        deslocamento = GetRandomValue(-1,1);
+    }while(deslocamento == 0);
+    return deslocamento;
+}
+
+bool canMove(int pos_x, int pos_y, int desl, char mapa[][28], char direcao){
+    bool move;
+    // assumimos inicialmente q pode mover
+    move = true;
+    if(direcao == 'x')
+        pos_x = pos_x + desl;
+    else // senao eh x eh y
+        pos_y = pos_y + desl;
+    if(mapa[pos_y][pos_x] == 'W')
+        move = false;
+    if(mapa[pos_y][pos_x] == 'D')
+        move = false;
+    return move;
 }
