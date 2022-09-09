@@ -13,3 +13,20 @@
 	<time.h>
 	<math.h>
 
+<<<<<<< Updated upstream
+=======
+1662759075 source:c:\users\trein\desktop\githubfinal_work\main.c
+	"raylib.h"
+	<stdio.h>
+	<stdlib.h>
+	<time.h>
+	<math.h>
+
+1662759036 source:c:\users\trein\desktop\githubfinal_work\funcoes.c
+	"raylib.h"
+	<stdio.h>
+	<stdlib.h>
+	<time.h>
+	<math.h>
+
+>>>>>>> Stashed changes
