@@ -55,7 +55,7 @@ typedef struct{
 }MONSTROS;
 //----------------------------------------------------------------------------
 
-void posicaoJogador(char mapa[][28], int* pos_dinamicaPersX, int* pos_dinamicaPersY, int *contaseres, int *contamonstros)
+void posicaoJogador(char mapa[][28], int* pos_dinamicaPersX, int* pos_dinamicaPersY)
 {
     int x = 0, y = 0;
     int i, j;
@@ -66,57 +66,11 @@ void posicaoJogador(char mapa[][28], int* pos_dinamicaPersX, int* pos_dinamicaPe
                 *pos_dinamicaPersX = x;
                 *pos_dinamicaPersY = y;//guarda a posicao inicial do jogador
             }
-            if(mapa[i][j] == 'K'){
-                *contaseres+= 1;//achou um ser
-            }
-            if(mapa[i][j] == 'M'){
-                *contamonstros+= 1;//achou um monstro
-            }
             x = x + ARESTA;//vai uma coluna pro lado
         }
         y = y + ARESTA;//vai uma linha pra baixo
         x = 0;//e volta para a primeira coluna
     }
-}
-
-void inicializaMonstro(MONSTROS monstros[], char mapa[][28])
-{
-    int x = 0, y = 0, aux = 0;
-    int i, j;
-
-    for(i = 0; i < 11; i++){
-        for(j = 0; j < 28; j++){
-            if(mapa[i][j] == 'M'){
-                monstros[aux].posX = x;
-                monstros[aux].posY = y;//guarda as coordenadas desse monstro em um espaço do vetor
-                aux++;
-            }
-            x = x + ARESTA;//vai uma coluna pro lado
-        }
-        y = y + ARESTA;//vai uma linha pra baixo
-        x = 0;//e volta para a primeira coluna
-    }
-
-}
-
-void inicializaSer(MONSTROS seres[], char mapa[][28])
-{
-    int x = 0, y = 0, aux = 0;
-    int i, j;
-
-    for(i = 0; i < 11; i++){
-        for(j = 0; j < 28; j++){
-            if(mapa[i][j] == 'K'){
-                seres[aux].posX = x;
-                seres[aux].posY = y;//guarda as coordenadas desse ser em um espaço do vetor
-                aux++;
-            }
-            x = x + ARESTA;//vai uma coluna pro lado
-        }
-        y = y + ARESTA;//vai uma linha pra baixo
-        x = 0;//e volta para a primeira coluna
-    }
-
 }
 
 void initJogo(char mapa[][28], PAREDES *indestrutiveis, CONSUMIVEL *pocao, PAREDES *destrutiveis)
@@ -201,12 +155,12 @@ void desenhaJogo(char mapa[][28], PERSONAGEM jogador, int menu, CONTADORES info,
     }
     if(menu){//por enquanto só exibe, as opcoes nao sao funcionais ainda
         DrawRectangle(40, 40, 460, 140, BEIGE);
-        DrawText("MENU", 210, 50, 30, BLACK);
-        DrawText("(N)Novo Jogo", 210, 100, 20, BLACK);
-        DrawText("(C)Carregar Jogo", 210, 125, 20, BLACK);
-        DrawText("(S)Salvar Jogo", 210, 150, 20, BLACK);
-        DrawText("(Q)Sair do Jogo", 210, 175, 20, BLACK);
-        DrawText("(V)Voltar", 210, 200, 20, BLACK);
+        DrawText("MENU", 45, 45, 30, BLACK);
+        DrawText("(N)Novo Jogo", 210, 50, 20, BLACK);
+        DrawText("(C)Carregar Jogo", 210, 75, 20, BLACK);
+        DrawText("(S)Salvar Jogo", 210, 100, 20, BLACK);
+        DrawText("(Q)Sair do Jogo", 210, 125, 20, BLACK);
+        DrawText("(V)Voltar", 210, 150, 20, BLACK);
     }
 
     DrawText(TextFormat("Score: %i", info.pontuacao), 5, 225, 30, GRAY);//vai contando o SCORE do player
@@ -241,7 +195,7 @@ int podeMover(PERSONAGEM jogador, PAREDES indestrutiveis, PAREDES destrutiveis, 
     return colidiu;
 }
 
-void explosao(int *vidas, char mapa[][28], int posJogadorX, int posJogadorY, int posBombaX, int posBombaY, int danoX[], int danoY[], int *pontuacao)
+void explosao(int *vidas, char mapa[][28], int posJogadorX, int posJogadorY, int posBombaX, int posBombaY, int danoX[], int danoY[], int *pontuacao, bool* perdeVida)
 {
     int i;
     //define o raio de dano a partir da posicao de onde a bomba foi plantada, ou seja, um quadrado a cima, um abaixo, um a esquerda, e um a direita, e claro, no mesmo lugar em que foi plantada.
@@ -259,6 +213,7 @@ void explosao(int *vidas, char mapa[][28], int posJogadorX, int posJogadorY, int
     for(i = 0; i < 5; i++){
         if(danoX[i]== posJogadorX && danoY[i]== posJogadorY){//se alguma coordenada do raio de dano coincidir com a posicao do jogador
             *vidas -= 1;//perde uma vida
+            *perdeVida = true;
             if(*pontuacao>=100)
                 *pontuacao -= 100;//se tiver pontos suficientes para perder, perde
             else
@@ -269,7 +224,7 @@ void explosao(int *vidas, char mapa[][28], int posJogadorX, int posJogadorY, int
 
 }
 
-void colhePocao(PERSONAGEM *jogador, char mapa[][28], CONTADORES *info)
+void colhePocao(PERSONAGEM *jogador, char mapa[][28], CONTADORES *info, int pontos)
 {
     int j, i;
 
@@ -280,7 +235,7 @@ void colhePocao(PERSONAGEM *jogador, char mapa[][28], CONTADORES *info)
     i = jogador->pos_dinamicaPersY/ARESTA;//Se as posicoes dinamicas são o produto da aresta pela posicao na matriz caracter, logo as posicoes na matriz caracter serao a divisao das posiçoes dinamicas pela aresta.
 
     mapa[i][j] = ' ';//onde há pocao e o está em cima dessa posicao, nossa matriz caracter tera esse 'P' trocado por um ' ', ou seja, irá liberar um espaço de livre.
-    info->pontuacao = info->pontuacao + 50;//contabiliza 50 pontos por pocao pega
+    info->pontuacao = info->pontuacao + pontos;//contabiliza 50 pontos por pocao pega
 }
 
 int moveParaPocao(PERSONAGEM jogador, CONSUMIVEL *pocao)
@@ -295,3 +250,18 @@ int moveParaPocao(PERSONAGEM jogador, CONSUMIVEL *pocao)
     }
     return colidiu;
 }
+
+int moveParaSer(PERSONAGEM jogador, MONSTROS seres[], int contaseres, char mapa[][28])
+{
+    //ve se o personagem vai ocupar as  mesmas coordenadas de uma pocao
+    int colidiu = 1;
+    int i;
+    for(i = 0; i < contaseres; i++){
+        if(((jogador.pos_dinamicaPersX + jogador.persdx)== seres[i].posX*ARESTA)&&((jogador.pos_dinamicaPersY +jogador.persdy)== seres[i].posY*ARESTA)){//
+            colidiu = 0;//vai ocupar
+        }
+    }
+    return colidiu;
+}
+
+
