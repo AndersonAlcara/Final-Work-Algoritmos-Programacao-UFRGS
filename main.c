@@ -53,6 +53,7 @@ typedef struct{
     int qtd_passos;//conta os passos de cada monstro/ser
     char direcao_desl;//qual o eixo de deslocamento dos monstros
     int posX, posY;//posicoes dos monstros/seres
+    bool vivo;
 }MONSTROS;
 
 //----------------------------------------------------------------------------
@@ -63,10 +64,10 @@ void quantosMonstros();
 void iniMonstros(MONSTROS monstros[], int contamonstros, char mapa[][28]);
 void iniSeres(MONSTROS seres[], int contaseres, char mapa[][28]);
 int moveParaSer();
-bool canMove(int pos_x, int pos_y, int desl, char mapa[][28], char direcao);
+bool canMove(int pos_x, int pos_y, int desl, char mapa[][28], char direcao, BOMBA bomba[]);
 int geraDeslocamento();
 char geraDirecao();
-void moveCriaturas(MONSTROS monstros[], MONSTROS seres[], int contamonstros, int contaseres, char mapa[][28]);
+void moveCriaturas(MONSTROS monstros[], MONSTROS seres[], int contamonstros, int contaseres, char mapa[][28], BOMBA bomba[]);
 void colhePocao();
 void posicaoJogador();
 void initJogo();
@@ -112,9 +113,12 @@ int main()
     CONSUMIVEL pocao;
     pocao.qntdP = 0;
 
-    //quantidade de monstros e seres
+    //monstros e seres
     int contaseres = 0;
     int contamonstros = 0;
+    int serCapturado;
+    int contador_de_mov_criatura = 0;
+    bool deu_dano = false;
 
     //menu
     bool menu = false;//comeca com o menu fechado
@@ -122,7 +126,7 @@ int main()
 
     //mapa
     char mapa[11][28];
-    int contador_de_niveis = 1;
+    int contador_de_niveis = 0;
     bool trocaNivel = true;
 
     //atualiza contadores
@@ -130,7 +134,6 @@ int main()
     info.bombas = 3;
     info.pontuacao = 0;
     info.vidas = 3;
-    int contador_de_mov_criatura = 0;
 
     InitWindow(LARGURA, ALTURA, "O jogo");
     SetTargetFPS(60);
@@ -138,8 +141,9 @@ int main()
     //main game loop
     while (!WindowShouldClose()&&info.vidas>0)
     {
-         if(trocaNivel == true){//está funcionando legal
+         if(trocaNivel == true){
 
+             contador_de_niveis++;//para abrir fase 1 e não 0.
              trocaNivel = false;//já torna falso, para a condição não ficar se repetindo durante o while
              info.nivel = contador_de_niveis;//atualiza o visor de nível a partir do contador de níveis
 
@@ -148,14 +152,17 @@ int main()
              char nivel[11];
              sprintf(nivel, "nivel%d.txt", contador_de_niveis);//define o nome do arquivo a partir do contador de niveis
              fase = fopen(nivel, "r");
-             if(fase == NULL)
+             if(fase == NULL){
                 printf("Erro na abertura do arquivo.");
-             else{
+                CloseWindow();
+             }else{
                 for(i = 0; i < 11; i++)
                     for(j = 0; j < 28; j++)
                         mapa[i][j] = getc(fase);//passa a matriz de caracteres do arquivo para uma matriz variavel do programa
+                info.nivel = contador_de_niveis;
              }
-             fclose(fase);
+            fclose(fase);
+
             //reinicializações
              contaseres = 0;
              contamonstros = 0;
@@ -176,6 +183,13 @@ int main()
              quantosMonstros(&contamonstros, mapa);
 
              MONSTROS seres[contaseres], monstros[contamonstros];//sabendo já o número de monstros/seres, é possível definir o limite dos vetores
+
+             for(i = 0; i < contamonstros; i++){
+                monstros[i].vivo = true;
+             }
+             for(i = 0; i < contaseres; i++){
+                seres[i].vivo = true;
+             }
 
              iniSeres(seres, contaseres, mapa);
              iniMonstros(monstros, contamonstros, mapa);
@@ -200,9 +214,12 @@ int main()
         }
 
 
-        if(IsKeyPressed(KEY_J)){
-            trocaNivel = true;
-            contador_de_niveis++;///TEMPORARIO, FUNCAO DE TESTE PARA AVANÇAR NÍVEIS
+        for(i = 0, k = 0; i < contaseres; i++){
+            if(seres[i].vivo==false)
+                k++;
+            if(k == contaseres){
+                trocaNivel=true;
+            }
         }
 
         if(menu){
@@ -216,15 +233,16 @@ int main()
                  trocaNivel = false;
                  FILE* fase;
                  char nivel[11];
-                 info.nivel = contador_de_niveis;
                  sprintf(nivel, "nivel%d.txt", contador_de_niveis);
                  fase = fopen(nivel, "r");
-                 if(fase == NULL)
+                 if(fase == NULL){
                     printf("Erro na abertura do arquivo.");
-                 else{
+                    CloseWindow();
+                 }else{
                     for(i = 0; i < 11; i++)
                         for(j = 0; j < 28; j++)
                             mapa[i][j] = getc(fase);
+                    info.nivel = contador_de_niveis;
                  }
                  fclose(fase);
 
@@ -238,11 +256,18 @@ int main()
                  info.pontuacao = 0;
                  info.vidas = 3;
                  info.bombas = 3;
+
                  posicaoJogador(mapa, &(jogador.pos_dinamicaPersX), &(jogador.pos_dinamicaPersY));//descobre coordenadas do jogador e o número de monstros/seres
                  quantosSeres(&contaseres, mapa);
                  quantosMonstros(&contamonstros, mapa);
 
-                MONSTROS seres[contaseres], monstros[contamonstros];//sabendo já o número de monstros/seres, é possível definir o limite dos vetores
+                 MONSTROS seres[contaseres], monstros[contamonstros];//sabendo já o número de monstros/seres, é possível definir o limite dos vetores
+                 for(i = 0; i < contamonstros; i++){
+                    monstros[i].vivo = true;
+                 }
+                 for(i = 0; i < contaseres; i++){
+                    seres[i].vivo = true;
+                 }
 
                  iniSeres(seres, contaseres, mapa);
                  iniMonstros(monstros, contamonstros, mapa);
@@ -305,7 +330,8 @@ int main()
                     bomba[i].bomba = true;//a bomba esta plantada
                 }
                 if(bomba[i].contador_frames==180){//quando chega ao final
-                    explosao(&(info.vidas), mapa, jogador.pos_dinamicaPersX, jogador.pos_dinamicaPersY, bomba[i].pos_x_bomba, bomba[i].pos_y_bomba, danoX, danoY, &(info.pontuacao), &perdeVida);//cria a explosao de dano
+                    explosao(&(info.vidas), mapa, jogador.pos_dinamicaPersX, jogador.pos_dinamicaPersY, bomba[i].pos_x_bomba, bomba[i].pos_y_bomba, danoX, danoY, &(info.pontuacao), &perdeVida, monstros, contamonstros, &serCapturado);//cria a explosao de dano
+                    monstros[serCapturado].vivo = false;
                     bomba[i].bomba = false;//a bomba passa a não existir mais
                     explode = true;//sinaliza que ocorre uma explosao grafica
                     info.bombas+=1;//re-abastece o arsenal
@@ -332,9 +358,14 @@ int main()
                     pocao.qntdP -= 1;//diminui uma pocao do vetor de pocoes
                     initJogo(mapa, &indestrutiveis, &pocao, &destrutiveis);//reinicializa o mapa
                 }
-                else if(moveParaSer(jogador, seres, contaseres, mapa)== 0){
-                    int pontos = 100;
-                    ////PRECISA SER ARRUMADO
+                else if(moveParaSer(jogador, seres, contaseres, mapa, &serCapturado)== 0){
+                    seres[serCapturado].vivo = false;
+                    jogador.pos_dinamicaPersX += jogador.persdx;
+                    jogador.pos_dinamicaPersY += jogador.persdy;
+                }else if(moveParaSer(jogador, monstros, contamonstros, mapa, &serCapturado)== 0){
+                    deu_dano = true;
+                    jogador.pos_dinamicaPersX += jogador.persdx;
+                    jogador.pos_dinamicaPersY += jogador.persdy;
                 }else{
                     jogador.pos_dinamicaPersX += jogador.persdx;
                     jogador.pos_dinamicaPersY += jogador.persdy;//caso contrario, só desloca o personagem
@@ -347,7 +378,17 @@ int main()
                 }
             }
             if(contador_de_mov_criatura%50==0)//movimenta as criaturas em multiplos de 50
-                moveCriaturas(monstros, seres, contamonstros, contaseres, mapa);
+                moveCriaturas(monstros, seres, contamonstros, contaseres, mapa, bomba);
+
+            for(i = 0; i < contamonstros; i ++){
+                if(monstros[i].vivo==true)
+                    if(deu_dano == true){
+                        info.vidas-=1;
+                        deu_dano = false;
+                    }
+            }
+
+
         }
 
         desenhaJogo(mapa, jogador, menu, info, bomba, danoX, danoY, explode, seres, monstros, contamonstros, contaseres);//reproduz o grafico
@@ -393,9 +434,11 @@ void iniSeres(MONSTROS seres[], int contaseres, char mapa[][28]){
     for(linha = 0; linha < 11; linha++)
         for(coluna = 0; coluna < 28; coluna++)
                 if(mapa[linha][coluna] == 'K'){
-                    seres[i].posX = coluna;
-                    seres[i].posY = linha;
-                    i++;
+                    if(seres[i].vivo==true){
+                        seres[i].posX = coluna;
+                        seres[i].posY = linha;
+                        i++;
+                    }
                 }
 
     // inicializar qtd passos em zero
@@ -413,9 +456,11 @@ void iniMonstros(MONSTROS monstros[], int contamonstros, char mapa[][28]){
     for(linha = 0; linha < 11; linha++)
         for(coluna = 0; coluna < 28; coluna++)
             if(mapa[linha][coluna] == 'M'){
-                monstros[i].posX = coluna;
-                monstros[i].posY = linha;
-                i++;
+                if(monstros[i].vivo==true){
+                    monstros[i].posX = coluna;
+                    monstros[i].posY = linha;
+                    i++;
+                }
             }
 
     // inicializar qtd passos em zero
@@ -423,7 +468,7 @@ void iniMonstros(MONSTROS monstros[], int contamonstros, char mapa[][28]){
         monstros[i].qtd_passos = 0;
 }
 
- void moveCriaturas(MONSTROS monstros[], MONSTROS seres[], int contamonstros, int contaseres, char mapa[][28]){
+ void moveCriaturas(MONSTROS monstros[], MONSTROS seres[], int contamonstros, int contaseres, char mapa[][28], BOMBA bomba[]){
      int i;
      //char direcao;
      //int desl;
@@ -431,37 +476,41 @@ void iniMonstros(MONSTROS monstros[], int contamonstros, char mapa[][28]){
      // MONSTROS
      for(i = 0; i < contamonstros; i++){
         // gera direcao de movimento do monstro i
-        if(monstros[i].qtd_passos == 0){
-            monstros[i].direcao_desl = geraDirecao();
-            monstros[i].desl = geraDeslocamento();
+        if(monstros[i].vivo==true){
+            if(monstros[i].qtd_passos == 0){
+                monstros[i].direcao_desl = geraDirecao();
+                monstros[i].desl = geraDeslocamento();
+            }
+            // verifica se pode mover e se qtdpassos está de acordo
+            if(canMove(monstros[i].posX, monstros[i].posY, monstros[i].desl, mapa, monstros[i].direcao_desl, bomba)&&(monstros[i].qtd_passos < 5)){
+                if(monstros[i].direcao_desl == 'x')
+                    monstros[i].posX = monstros[i].posX + monstros[i].desl;
+                else
+                    monstros[i].posY = monstros[i].posY + monstros[i].desl;
+                monstros[i].qtd_passos = monstros[i].qtd_passos + 1;
+            }
+            else // se nao estiver de acordo zera contador de passos e gera novo deslocamento lá em cima
+                monstros[i].qtd_passos = 0;
         }
-        // verifica se pode mover e se qtdpassos está de acordo
-        if(canMove(monstros[i].posX, monstros[i].posY, monstros[i].desl, mapa, monstros[i].direcao_desl)&&(monstros[i].qtd_passos < 5)){
-            if(monstros[i].direcao_desl == 'x')
-                monstros[i].posX = monstros[i].posX + monstros[i].desl;
-            else
-                monstros[i].posY = monstros[i].posY + monstros[i].desl;
-            monstros[i].qtd_passos = monstros[i].qtd_passos + 1;
-        }
-        else // se nao estiver de acordo zera contador de passos e gera novo deslocamento lá em cima
-            monstros[i].qtd_passos = 0;
      }
      // SERES
      for(i = 0; i < contaseres; i++){
         // gera direcao de movimento do ser i
-        if(seres[i].qtd_passos == 0){
-            seres[i].direcao_desl = geraDirecao();
-            seres[i].desl = geraDeslocamento();
-        }
-        if(canMove(seres[i].posX, seres[i].posY, seres[i].desl, mapa, seres[i].direcao_desl)&&(seres[i].qtd_passos < 5)){
-            if(seres[i].direcao_desl == 'x')
-                seres[i].posX = seres[i].posX + seres[i].desl;
+        if(seres[i].vivo==true){
+            if(seres[i].qtd_passos == 0){
+                seres[i].direcao_desl = geraDirecao();
+                seres[i].desl = geraDeslocamento();
+            }
+            if(canMove(seres[i].posX, seres[i].posY, seres[i].desl, mapa, seres[i].direcao_desl, bomba)&&(seres[i].qtd_passos < 5)){
+                if(seres[i].direcao_desl == 'x')
+                    seres[i].posX = seres[i].posX + seres[i].desl;
+                else
+                    seres[i].posY = seres[i].posY + seres[i].desl;
+                seres[i].qtd_passos = seres[i].qtd_passos + 1;
+            }
             else
-                seres[i].posY = seres[i].posY + seres[i].desl;
-            seres[i].qtd_passos = seres[i].qtd_passos + 1;
+                seres[i].qtd_passos = 0;
         }
-        else
-            seres[i].qtd_passos = 0;
      }
 }
 // gera direcao em que monstros ou seres irao se mover na matriz/mapa
@@ -488,8 +537,9 @@ int geraDeslocamento(){
     return deslocamento;
 }
 
-bool canMove(int pos_x, int pos_y, int desl, char mapa[][28], char direcao){
+bool canMove(int pos_x, int pos_y, int desl, char mapa[][28], char direcao, BOMBA bomba[]){
     bool move;
+    int i;
     // assumimos inicialmente q pode mover
     move = true;
     if(direcao == 'x')
@@ -500,5 +550,9 @@ bool canMove(int pos_x, int pos_y, int desl, char mapa[][28], char direcao){
         move = false;
     if(mapa[pos_y][pos_x] == 'D')
         move = false;
+    for(i = 0; i < 2; i++){
+        if((pos_y*ARESTA == bomba[i].pos_y_bomba)&&(pos_x*ARESTA == bomba[i].pos_x_bomba))
+            move = false;
+    }
     return move;
 }

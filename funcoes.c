@@ -52,6 +52,7 @@ typedef struct{
     int qtd_passos;
     char direcao_desl;
     int posX, posY;
+    bool vivo;
 }MONSTROS;
 //----------------------------------------------------------------------------
 
@@ -138,10 +139,15 @@ void desenhaJogo(char mapa[][28], PERSONAGEM jogador, int menu, CONTADORES info,
     desenhaMapaEstatico(mapa);//desenha o mapa
     DrawRectangle(jogador.pos_dinamicaPersX, jogador.pos_dinamicaPersY, ARESTA, ARESTA, BLUE);//desenha o personagem
 
-    for(i = 0; i < contaseres; i++)
-        DrawRectangle(seres[i].posX*ARESTA, seres[i].posY*ARESTA, ARESTA, ARESTA, ORANGE);//desenha os seres
-    for(i = 0; i < contamonstros; i++)
-        DrawRectangle(monstros[i].posX*ARESTA, monstros[i].posY*ARESTA, ARESTA, ARESTA, RED);//desenha os monstros
+    for(i = 0; i < contaseres; i++){
+        if(seres[i].vivo==true)
+            DrawRectangle(seres[i].posX*ARESTA, seres[i].posY*ARESTA, ARESTA, ARESTA, ORANGE);//desenha os seres
+    }
+
+    for(i = 0; i < contamonstros; i++){
+        if(monstros[i].vivo==true)
+            DrawRectangle(monstros[i].posX*ARESTA, monstros[i].posY*ARESTA, ARESTA, ARESTA, RED);//desenha os monstros
+    }
 
     for(i = 0; i < 3; i++){//verifica se alguma das 3 bombas está plantada
         if(bomba[i].bomba==true){//se estiver
@@ -195,9 +201,9 @@ int podeMover(PERSONAGEM jogador, PAREDES indestrutiveis, PAREDES destrutiveis, 
     return colidiu;
 }
 
-void explosao(int *vidas, char mapa[][28], int posJogadorX, int posJogadorY, int posBombaX, int posBombaY, int danoX[], int danoY[], int *pontuacao, bool* perdeVida)
+void explosao(int *vidas, char mapa[][28], int posJogadorX, int posJogadorY, int posBombaX, int posBombaY, int danoX[], int danoY[], int *pontuacao, bool* perdeVida, MONSTROS monstro[], int contamonstros, int *serCapturado)
 {
-    int i;
+    int i, k, achou;
     //define o raio de dano a partir da posicao de onde a bomba foi plantada, ou seja, um quadrado a cima, um abaixo, um a esquerda, e um a direita, e claro, no mesmo lugar em que foi plantada.
     danoX[0] = posBombaX + ARESTA;
     danoX[1] = posBombaX - ARESTA;
@@ -221,6 +227,17 @@ void explosao(int *vidas, char mapa[][28], int posJogadorX, int posJogadorY, int
                     *pontuacao = 0;
         }
     }
+
+    for(k = 0; k < 5; k++){
+        for(i = 0; i < contamonstros; i++){
+            if(monstro[i].vivo == true)
+                if((danoX[k]== ((monstro[i].posX)*ARESTA)) && (danoY[k]== (monstro[i].posY)*ARESTA)){
+                    achou = i;
+                    *pontuacao += 15; //(?)
+                }
+        }
+    }
+    *serCapturado = achou;
 
 }
 
@@ -251,16 +268,18 @@ int moveParaPocao(PERSONAGEM jogador, CONSUMIVEL *pocao)
     return colidiu;
 }
 
-int moveParaSer(PERSONAGEM jogador, MONSTROS seres[], int contaseres, char mapa[][28])
+int moveParaSer(PERSONAGEM jogador, MONSTROS seres[], int contaseres, char mapa[][28], int* serCapturado)
 {
     //ve se o personagem vai ocupar as  mesmas coordenadas de uma pocao
     int colidiu = 1;
-    int i;
+    int i, achou;
     for(i = 0; i < contaseres; i++){
         if(((jogador.pos_dinamicaPersX + jogador.persdx)== seres[i].posX*ARESTA)&&((jogador.pos_dinamicaPersY +jogador.persdy)== seres[i].posY*ARESTA)){//
             colidiu = 0;//vai ocupar
+            achou = i;
         }
     }
+    *serCapturado = achou;
     return colidiu;
 }
 
