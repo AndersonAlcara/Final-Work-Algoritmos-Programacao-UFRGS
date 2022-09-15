@@ -40,11 +40,13 @@ typedef struct{
 }CONTADORES;
 
 typedef struct{
-    bool bomba;
-    int pos_x_bomba;
-    int pos_y_bomba;
-    int contador_frames;
-    bool timer;
+    bool bomba;//verifica se a bomba esta ativada ou nao
+    int pos_x_bomba;//guarda a posicao x de quando a bomba foi plantada
+    int pos_y_bomba;//guarda a posicao y de quando a bomba foi plantada
+    float contador_frames;//conta frames por segundo
+    int contador_de_explosao;
+    bool explosao;
+    bool timer;//o timer que calcula o periodo em que a bomba está ativa, e tb de quando ela explode
 }BOMBA;
 
 typedef struct{
@@ -55,6 +57,161 @@ typedef struct{
     bool vivo;
 }MONSTROS;
 //----------------------------------------------------------------------------
+void quantosSeres(int *contaseres, char mapa[][28])
+{
+    int linha, coluna;
+    //descobre quantos monstros existem no mapa
+    for(linha = 0; linha < 11; linha++)
+        for(coluna = 0; coluna < 28; coluna++)
+                if(mapa[linha][coluna] == 'K'){
+                    *contaseres+=1;
+                }
+}
+
+void iniSeres(MONSTROS seres[], int contaseres, char mapa[][28]){
+    int linha, coluna;
+    int i;
+    i = 0;
+    // acha posicao inicial x e y de cada ser
+    for(linha = 0; linha < 11; linha++)
+        for(coluna = 0; coluna < 28; coluna++)
+                if(mapa[linha][coluna] == 'K'){
+                    if(seres[i].vivo==true){
+                        seres[i].posX = coluna;
+                        seres[i].posY = linha;
+                        i++;
+                    }
+                }
+
+    // inicializar qtd passos em zero
+    for(i = 0; i < contaseres; i++)
+        seres[i].qtd_passos = 0;
+
+}
+
+void quantosMonstros(int *contamonstros, char mapa[][28]){
+    int linha, coluna;
+    //descobre quantos monstros existem no mapa
+    for(linha = 0; linha < 11; linha++)
+        for(coluna = 0; coluna < 28; coluna++)
+                if(mapa[linha][coluna] == 'M'){
+                    *contamonstros+=1;
+                }
+}
+
+void iniMonstros(MONSTROS monstros[], int contamonstros, char mapa[][28]){
+
+    int linha, coluna;
+    int i;
+    i = 0;
+    // acha posicao inicial x e y de cada monstro
+    for(linha = 0; linha < 11; linha++)
+        for(coluna = 0; coluna < 28; coluna++)
+            if(mapa[linha][coluna] == 'M'){
+                if(monstros[i].vivo==true){
+                    monstros[i].posX = coluna;
+                    monstros[i].posY = linha;
+                    i++;
+                }
+            }
+
+    // inicializar qtd passos em zero
+    for(i = 0; i < contamonstros; i++)
+        monstros[i].qtd_passos = 0;
+}
+
+// gera direcao em que monstros ou seres irao se mover na matriz/mapa
+char geraDirecao(){
+
+    char direcaoNaMatriz;
+    int valorXY;
+
+    valorXY = GetRandomValue(0,1);
+    if(valorXY)
+        direcaoNaMatriz = 'x';
+    else
+        direcaoNaMatriz = 'y';
+    return direcaoNaMatriz;
+
+}
+
+
+// gera deslocamento, dado a direcao atual e o deslocamento atual
+// retorna novo deslocamento
+int geraDeslocamento(){
+    int deslocamento;
+    do{
+        deslocamento = GetRandomValue(-1,1);
+    }while(deslocamento == 0);
+    return deslocamento;
+}
+
+bool canMove(int pos_x, int pos_y, int desl, char mapa[][28], char direcao, BOMBA bomba[]){
+    bool move;
+    int i;
+    // assumimos inicialmente q pode mover
+    move = true;
+    if(direcao == 'x')
+        pos_x = pos_x + desl;
+    else // senao eh x eh y
+        pos_y = pos_y + desl;
+    if(mapa[pos_y][pos_x] == 'W')
+        move = false;
+    if(mapa[pos_y][pos_x] == 'D')
+        move = false;
+    for(i = 0; i < 2; i++){
+        if((pos_y*ARESTA == bomba[i].pos_y_bomba)&&(pos_x*ARESTA == bomba[i].pos_x_bomba))
+            move = false;
+    }
+    return move;
+}
+
+void moveCriaturas(MONSTROS monstros[], MONSTROS seres[], int contamonstros, int contaseres, char mapa[][28], BOMBA bomba[])
+{
+     int i;
+     //char direcao;
+     //int desl;
+
+     // MONSTROS
+     for(i = 0; i < contamonstros; i++){
+        // gera direcao de movimento do monstro i
+        if(monstros[i].vivo==true){
+            if(monstros[i].qtd_passos == 0){
+                monstros[i].direcao_desl = geraDirecao();
+                monstros[i].desl = geraDeslocamento();
+            }
+            // verifica se pode mover e se qtdpassos está de acordo
+            if(canMove(monstros[i].posX, monstros[i].posY, monstros[i].desl, mapa, monstros[i].direcao_desl, bomba)&&(monstros[i].qtd_passos < 5)){
+                if(monstros[i].direcao_desl == 'x')
+                    monstros[i].posX = monstros[i].posX + monstros[i].desl;
+                else
+                    monstros[i].posY = monstros[i].posY + monstros[i].desl;
+                monstros[i].qtd_passos = monstros[i].qtd_passos + 1;
+            }
+            else // se nao estiver de acordo zera contador de passos e gera novo deslocamento lá em cima
+                monstros[i].qtd_passos = 0;
+        }
+     }
+     // SERES
+     for(i = 0; i < contaseres; i++){
+        // gera direcao de movimento do ser i
+        if(seres[i].vivo==true){
+            if(seres[i].qtd_passos == 0){
+                seres[i].direcao_desl = geraDirecao();
+                seres[i].desl = geraDeslocamento();
+            }
+            if(canMove(seres[i].posX, seres[i].posY, seres[i].desl, mapa, seres[i].direcao_desl, bomba)&&(seres[i].qtd_passos < 5)){
+                if(seres[i].direcao_desl == 'x')
+                    seres[i].posX = seres[i].posX + seres[i].desl;
+                else
+                    seres[i].posY = seres[i].posY + seres[i].desl;
+                seres[i].qtd_passos = seres[i].qtd_passos + 1;
+            }
+            else
+                seres[i].qtd_passos = 0;
+        }
+     }
+}
 
 void posicaoJogador(char mapa[][28], int* pos_dinamicaPersX, int* pos_dinamicaPersY)
 {
@@ -130,7 +287,7 @@ void desenhaMapaEstatico(char mapa[][28])
     }
 }
 
-void desenhaJogo(char mapa[][28], PERSONAGEM jogador, int menu, CONTADORES info, BOMBA bomba[], int danoX[], int danoY[], bool explode, MONSTROS seres[], MONSTROS monstros[], int contamonstros, int contaseres)
+void desenhaJogo(char mapa[][28], PERSONAGEM jogador, int menu, CONTADORES info, BOMBA bomba[], int danoX[], int danoY[], MONSTROS seres[], MONSTROS monstros[], int contamonstros, int contaseres)
 {
     int i;
     //faz qualquer atualização grafica
@@ -153,7 +310,7 @@ void desenhaJogo(char mapa[][28], PERSONAGEM jogador, int menu, CONTADORES info,
         if(bomba[i].bomba==true){//se estiver
             DrawRectangle(bomba[i].pos_x_bomba, bomba[i].pos_y_bomba, ARESTA, ARESTA, YELLOW);//desenha uma bomba amarela
         }
-        if(explode == true){//se estiver em sua fase de explosao
+        if(bomba[i].explosao == true){//se estiver em sua fase de explosao
             for(i = 0; i < 5; i++){
                 DrawRectangle(danoX[i], danoY[i], ARESTA, ARESTA, BROWN);//desenha um '+' rapidamente, mostrando o raio de dano
             }
@@ -281,6 +438,15 @@ int moveParaSer(PERSONAGEM jogador, MONSTROS seres[], int contaseres, char mapa[
     }
     *serCapturado = achou;
     return colidiu;
+}
+
+void funcBomba(BOMBA bomba[], int* num_deBombas, int qualBomba, PERSONAGEM jogador)
+{
+    bomba[qualBomba].contador_frames = 0;//zera o contador de quadros
+    bomba[qualBomba].timer = true;//sinaliza para o timer começar a contar
+    bomba[qualBomba].pos_x_bomba = jogador.pos_dinamicaPersX;
+    bomba[qualBomba].pos_y_bomba = jogador.pos_dinamicaPersY;//lê as posicoes de onde a bomba será plantada
+    *num_deBombas-= 1;//diminui uma bomba do arsenal
 }
 
 
