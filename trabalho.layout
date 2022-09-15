@@ -9,7 +9,11 @@
 	</File>
 	<File name="funcoes.c" open="1" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
+<<<<<<< Updated upstream
 			<Cursor1 position="9274" topLine="208" />
+=======
+			<Cursor1 position="22330" topLine="520" />
+>>>>>>> Stashed changes
 		</Cursor>
 	</File>
 </CodeBlocks_layout_file>
