@@ -92,6 +92,7 @@ void quantosMonstros();
 void iniMonstros();
 void iniSeres();
 int  moveParaSer();
+int  moveParaMonstro();
 bool canMove();
 int  geraDeslocamento();
 char geraDirecao();
@@ -106,6 +107,7 @@ int  moveParaPocao();
 void explosao();
 void iniciaVariaveisEstadoCarregado();
 void variaveisParaProximaFase();
+
 //----------------------------------------------------------------------------
 
 //Funcão Principal------------------------------------------------------------
@@ -296,7 +298,6 @@ int main()
                         }
                 }
             }
-
             //MOVIMENTAÇÃO
             if(podeMover(estadoCarregado)== 0){//se puder mover
                 if(moveParaPocao(estadoCarregado.jogador, &estadoCarregado.pocao)== 0){//se for para cima de uma pocao
@@ -311,7 +312,8 @@ int main()
                     estadoCarregado.contaseres = estadoCarregado.contaseres - 1; //diminui '1' no contador de seres
                     estadoCarregado.info.pontuacao += 10; //pontua
                 }
-                if(moveParaSer(estadoCarregado, &serCapturado)== 0)//se for para cima de um monstro
+
+                if(moveParaMonstro(estadoCarregado, &serCapturado)== 0)//se for para cima de um monstro
                     deu_dano = true;
 
                 estadoCarregado.jogador.pos_dinamicaPersX += estadoCarregado.jogador.persdx;
@@ -320,7 +322,7 @@ int main()
 
             //VIDA EXTRA
             for(i = 1; i < 10; i++){
-                if((estadoCarregado.info.pontuacao >= (1000 * i))&&(vida_extra == false)){//quando a pontuação for multipla de 1000, ganha uma vida extra
+                if((estadoCarregado.info.pontuacao >= (1000 * i)) && (vida_extra == false)){//quando a pontuação for multipla de 1000, ganha uma vida extra
                     vida_extra = !vida_extra;//para não ficar repetindo
                     estadoCarregado.info.vidas += 1;//ganha uma vida
                 }
@@ -330,7 +332,6 @@ int main()
             if(contador_de_mov_criatura % 50 == 0)//movimenta as criaturas em multiplos de 50
                 moveCriaturas(&estadoCarregado);
 
-
             for(i = 0; i < estadoCarregado.contamonstros; i ++){
                 if(estadoCarregado.monstros[i].vivo == true)//se o monstro esta vivo
                     if(deu_dano == true){//e encostou no jogador
@@ -338,8 +339,6 @@ int main()
                         deu_dano = false;//para não ficar se repetindo
                     }
             }
-
-
         }
         //GRÁFICOS
         desenhaJogo(&estadoCarregado, menu, danoX, danoY);
@@ -360,8 +359,9 @@ int main()
 }
 
 //CHECKLIST
+// quando o jogo é iniciado a partir do TAB e dps (N), a primeira fase se repete 2 vezes.
 // dano dos monstros
 // captura de seres após a primeira fase
 // quando jogador perde uma vida, os seres ,monstros e jogador precisam voltar para as posições iniciais da fase
 // bombas coexistentes desaparecem quando alguma explode
-//comentários nas funções
+// comentários nas funções

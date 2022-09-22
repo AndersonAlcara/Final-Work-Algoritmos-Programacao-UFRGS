@@ -423,7 +423,6 @@ void explosao(ESTADO *estadoCarregado, int danoX[], int danoY[], bool* perdeVida
         }
     }
     *serCapturado = achou;
-
 }
 
 void colhePocao(ESTADO *estadoCarregado, int pontos)
@@ -456,7 +455,22 @@ int moveParaSer(ESTADO estadoCarregado, int* serCapturado)
     int colidiu = 1;
     int i, achou;
     for(i = 0; i < estadoCarregado.contaseres; i++){
-        if(((estadoCarregado.jogador.pos_dinamicaPersX + estadoCarregado.jogador.persdx) == estadoCarregado.seres[i].posX*ARESTA)&&((estadoCarregado.jogador.pos_dinamicaPersY + estadoCarregado.jogador.persdy)== estadoCarregado.seres[i].posY*ARESTA)){//
+        if(((estadoCarregado.jogador.pos_dinamicaPersX + estadoCarregado.jogador.persdx) == estadoCarregado.seres[i].posX * ARESTA)&&((estadoCarregado.jogador.pos_dinamicaPersY + estadoCarregado.jogador.persdy)== estadoCarregado.seres[i].posY * ARESTA)){//
+            colidiu = 0;//vai ocupar
+            achou = i;
+        }
+    }
+    *serCapturado = achou;
+    return colidiu;
+}
+
+int moveParaMonstro(ESTADO estadoCarregado, int* serCapturado)
+{
+    //ve se o personagem vai ocupar as  mesmas coordenadas de uma pocao
+    int colidiu = 1;
+    int i, achou;
+    for(i = 0; i < estadoCarregado.contamonstros; i++){
+        if(((estadoCarregado.jogador.pos_dinamicaPersX + estadoCarregado.jogador.persdx) == estadoCarregado.monstros[i].posX * ARESTA)&&((estadoCarregado.jogador.pos_dinamicaPersY + estadoCarregado.jogador.persdy)== estadoCarregado.monstros[i].posY * ARESTA)){//
             colidiu = 0;//vai ocupar
             achou = i;
         }
