@@ -80,6 +80,7 @@ typedef struct{
     PAREDES indestrutiveis;
     PAREDES destrutiveis;
 }ESTADO;
+
 //----------------------------------------------------------------------------
 
 //Protótipos------------------------------------------------------------------
@@ -116,11 +117,15 @@ int main()
     //DECLARAÇÃO DE ALGUMAS VARIÁVEIS
     char arqbin[16] = "dadosSalvos.bin";//nome do arquivo binário para salvar e/ou carregar informações
     int i, j, k = 0;//variaveis auxiliares
+    int posicaoInicialX, posicaoInicialY;
+    int posX_monstro[20], posY_monstro[20];
+    int posX_seres[20], posY_seres[20];
     bool vida_extra = false; //bônus de vida
     int danoX[5];//raio de dano da bomba
     int danoY[5];//raio de dano da bomba
     bool perdeVida = false;//verifica se o jogador deve perder vida
-    bool deu_dano = false;//verifica se o monstro deu dano
+    bool deu_dano;
+    bool fim_de_jogo = false;
     int serCapturado;//número de ser que foi encostado pelo jogador
     int contador_de_mov_criatura = 0;//conta frames para decidir se a criatura deve mover ou não
     bool menu = false;//verifica se o 'menu' está aberto ou fechado
@@ -133,7 +138,7 @@ int main()
     SetTargetFPS(60);
 
     //LOOP PRINCIPAL DO JOGO
-    while (!WindowShouldClose()&&estadoCarregado.info.vidas>0)//O JOGO SÓ CONTINUA ENQUANTO 'ESC' NÃO FOR PRESSIONADO *E* ENQUANTO O JOGADOR TIVER PELO MENOS '1' VIDA
+    while (!WindowShouldClose()&&estadoCarregado.info.vidas>0&&fim_de_jogo == false)//O JOGO SÓ CONTINUA ENQUANTO 'ESC' NÃO FOR PRESSIONADO *E* ENQUANTO O JOGADOR TIVER PELO MENOS '1' VIDA
     {
         //VERIFICA SE O JOGADOR DEVE PASSAR DE FASE
         for(i = 0; i < estadoCarregado.contaseres; i++){
@@ -155,8 +160,12 @@ int main()
             sprintf(estadoCarregado.nivel, "nivel%d.txt", estadoCarregado.info.nivel);//define o nome do arquivo a partir do contador de niveis
             fase = fopen(estadoCarregado.nivel, "r");//abre o arquivo
             if(fase == NULL){//verifica se foi bem sucedido
-                printf("Erro na abertura do arquivo.");
-                CloseWindow();//se não for, já fecha o jogo
+                if(estadoCarregado.info.nivel == 4){
+                    fim_de_jogo = true;
+                }else{
+                    printf("Erro na abertura do arquivo.");
+                    CloseWindow();//se não for, já fecha o jogo
+                }
             }else{
                 for(i = 0; i < LINHAS; i++){
                     for(j = 0; j < COLUNAS; j++){
@@ -168,7 +177,7 @@ int main()
             fclose(fase);//fecha o arquivo texto
 
             //REINICIA ALGUMAS VARIÁVEIS
-            variaveisParaProximaFase(&estadoCarregado, contador_de_mov_criatura);
+            variaveisParaProximaFase(&estadoCarregado, contador_de_mov_criatura, &posicaoInicialX, &posicaoInicialY, posX_monstro, posY_monstro, posX_seres, posY_seres);
          }
 
         //SE MENU ESTIVER ATIVO
@@ -184,16 +193,21 @@ int main()
             //CRIA UM NOVO JOGO
             if(IsKeyPressed(KEY_N))//só não está funcionando para os monstros
             {
-                 menu = false; //fecha o menu
-                 estadoCarregado.info.nivel = 1; //começa o nível em '1'
+                menu = false; //fecha o menu
+
+                estadoCarregado.info.nivel = 1; //começa o nível em '1'
 
                 //OPERA O ARQUIVO TEXTO (MAPA)
                 FILE* fase;
                 sprintf(estadoCarregado.nivel, "nivel%d.txt", estadoCarregado.info.nivel);//define o nome do arquivo a partir do contador de niveis
                 fase = fopen(estadoCarregado.nivel, "r");//abre o arquivo
                 if(fase == NULL){//verifica se foi bem sucedido
-                    printf("Erro na abertura do arquivo.");
-                    CloseWindow();//se não for, já fecha o jogo
+                    if(estadoCarregado.info.nivel == 4){
+                        fim_de_jogo = true;
+                    }else{
+                        printf("Erro na abertura do arquivo.");
+                        CloseWindow();//se não for, já fecha o jogo
+                    }
                 }else{
                     for(i = 0; i < LINHAS; i++){
                         for(j = 0; j < COLUNAS; j++){
@@ -206,7 +220,7 @@ int main()
 
                 //REINICIA ALGUMAS VARIÁVEIS
                 iniciaVariaveisEstadoCarregado(&estadoCarregado);
-                variaveisParaProximaFase(&estadoCarregado, contador_de_mov_criatura);
+                variaveisParaProximaFase(&estadoCarregado, contador_de_mov_criatura, &posicaoInicialX, &posicaoInicialY, posX_monstro, posY_monstro, posX_seres, posY_seres);
             }
 
             //CARREGA O ÚLTIMO JOGO SALVO
@@ -214,6 +228,7 @@ int main()
             {
                 menu = false;
                 if(carregaJogo(&estadoCarregado, arqbin)==1){
+                    printf("Jogo carregado com sucesso!\n");
                     leMapa(estadoCarregado);
                     initJogo(&estadoCarregado);
                 }else
@@ -254,12 +269,10 @@ int main()
                 if(IsKeyPressed(KEY_B)){
                     if(estadoCarregado.bomba[0].bomba == false)//se a bomba '0' não estiver plantada, é possivel plantá-la
                         funcBomba(&estadoCarregado, 0);
-
-                    if((estadoCarregado.bomba[1].bomba == false)&&(estadoCarregado.bomba[0].bomba == true))//se a bomba '1' não estiver plantada E a bomba '0' já estiver plantada, é possivel plantá-la
+                    else if(estadoCarregado.bomba[1].bomba == false)//se a bomba '1' não estiver plantada E a bomba '0' já estiver plantada, é possivel plantá-la
                         funcBomba(&estadoCarregado, 1);
-
-                    if((estadoCarregado.bomba[2].bomba == false)&&(estadoCarregado.bomba[0].bomba == true)&&(estadoCarregado.bomba[1].bomba == true))//se a bomba '2' não estiver plantada E a bomba '0' e '1' já estiverem plantadas, é possivel plantá-la
-                        funcBomba(&estadoCarregado,  2);
+                    else //se a bomba '2' não estiver plantada E a bomba '0' e '1' já estiverem plantadas, é possivel plantá-la
+                        funcBomba(&estadoCarregado, 2);
                 }
             }
 
@@ -298,8 +311,13 @@ int main()
                         }
                 }
             }
+
             //MOVIMENTAÇÃO
             if(podeMover(estadoCarregado)== 0){//se puder mover
+                if(IsKeyPressed(KEY_D)||IsKeyPressed(KEY_RIGHT)||IsKeyPressed(KEY_A)||IsKeyPressed(KEY_LEFT)||IsKeyPressed(KEY_W)||IsKeyPressed(KEY_UP)||IsKeyPressed(KEY_S)||IsKeyPressed(KEY_DOWN)){
+                    estadoCarregado.jogador.pos_dinamicaPersX += estadoCarregado.jogador.persdx;
+                    estadoCarregado.jogador.pos_dinamicaPersY += estadoCarregado.jogador.persdy;//desloca o personagem
+                }
                 if(moveParaPocao(estadoCarregado.jogador, &estadoCarregado.pocao)== 0){//se for para cima de uma pocao
                     int pontos = 50;
                     colhePocao(&estadoCarregado, pontos);//realiza o processo de captura da pocao
@@ -314,10 +332,8 @@ int main()
                 }
 
                 if(moveParaMonstro(estadoCarregado, &serCapturado)== 0)//se for para cima de um monstro
-                    deu_dano = true;
+                    perdeVida = true;
 
-                estadoCarregado.jogador.pos_dinamicaPersX += estadoCarregado.jogador.persdx;
-                estadoCarregado.jogador.pos_dinamicaPersY += estadoCarregado.jogador.persdy;//desloca o personagem
             }
 
             //VIDA EXTRA
@@ -327,28 +343,44 @@ int main()
                     estadoCarregado.info.vidas += 1;//ganha uma vida
                 }
             }
+            if(perdeVida == true){
+                estadoCarregado.info.vidas -= 1;
+                perdeVida = false;
+                for(i = 0; i < estadoCarregado.contamonstros; i ++){
+                    estadoCarregado.monstros[i].posX = posX_monstro[i];
+                    estadoCarregado.monstros[i].posY = posY_monstro[i];
+                }
+                for(i = 0; i < estadoCarregado.contaseres; i++){
+                    estadoCarregado.seres[i].posX = posX_seres[i];
+                    estadoCarregado.seres[i].posY = posY_seres[i];
+                }
+                estadoCarregado.jogador.pos_dinamicaPersX = posicaoInicialX;
+                estadoCarregado.jogador.pos_dinamicaPersY = posicaoInicialY;
+            }
 
             //VERIFICA SE DEVE HAVER MOVIMENTAÇÃO DOS MONSTROS
-            if(contador_de_mov_criatura % 50 == 0)//movimenta as criaturas em multiplos de 50
+            if(contador_de_mov_criatura % 50 == 0) //movimenta as criaturas em multiplos de 50
                 moveCriaturas(&estadoCarregado);
 
-            for(i = 0; i < estadoCarregado.contamonstros; i ++){
-                if(estadoCarregado.monstros[i].vivo == true)//se o monstro esta vivo
-                    if(deu_dano == true){//e encostou no jogador
-                        estadoCarregado.info.vidas-=1; //perde uma vida
-                        deu_dano = false;//para não ficar se repetindo
-                    }
-            }
+
         }
         //GRÁFICOS
         desenhaJogo(&estadoCarregado, menu, danoX, danoY);
     }
-
+    //MODOS DE ENCERRAMENTO DE JOGO
     //se o laço for finalizado por motivos de falta de vidas, escreve "game over" e fecha a janela
-    if(estadoCarregado.info.vidas==0){
+    if(estadoCarregado.info.vidas == 0){
         BeginDrawing();
         ClearBackground(BLACK);
         DrawText("GAME OVER", 90, 70, 60, RED);
+        EndDrawing();
+        _sleep(2000);
+    }
+
+    if(fim_de_jogo == true){
+        BeginDrawing();
+        ClearBackground(BLUE);
+        DrawText("WIN!", 150, 80, 95, RED);
         EndDrawing();
         _sleep(2000);
     }
@@ -359,9 +391,10 @@ int main()
 }
 
 //CHECKLIST
+// mensagem de final de jogo *CORRIGIDO*
 // quando o jogo é iniciado a partir do TAB e dps (N), a primeira fase se repete 2 vezes.
-// dano dos monstros
+// dano dos monstros *CORRIGIDO*
 // captura de seres após a primeira fase
-// quando jogador perde uma vida, os seres ,monstros e jogador precisam voltar para as posições iniciais da fase
-// bombas coexistentes desaparecem quando alguma explode
+// quando jogador perde uma vida, os seres ,monstros e jogador precisam voltar para as posições iniciais da fase *CORRIGIDO*
+// bombas coexistentes desaparecem quando alguma explode *CORRIGIDO*
 // comentários nas funções

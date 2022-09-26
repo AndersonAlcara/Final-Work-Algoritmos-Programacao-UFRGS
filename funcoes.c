@@ -93,7 +93,7 @@ void quantosSeres(ESTADO *estadoCarregado)
                 }
 }
 
-void iniSeres(ESTADO *estadoCarregado)
+void iniSeres(ESTADO *estadoCarregado, int posX_seres[], int posY_seres[])
 {
     int linha, coluna;
     int i;
@@ -104,7 +104,9 @@ void iniSeres(ESTADO *estadoCarregado)
                 if(estadoCarregado->mapa[linha][coluna] == 'K'){
                     if(estadoCarregado->seres[i].vivo == true){
                         estadoCarregado->seres[i].posX = coluna;
+                        posX_seres[i] = coluna;
                         estadoCarregado->seres[i].posY = linha;
+                        posY_seres[i] = linha;
                         i++;
                     }
                 }
@@ -125,7 +127,7 @@ void quantosMonstros(ESTADO *estadoCarregado){
                 }
 }
 
-void iniMonstros(ESTADO *estadoCarregado){
+void iniMonstros(ESTADO *estadoCarregado, int posX_monstro[], int posY_monstro[]){
 
     int linha, coluna;
     int i;
@@ -136,7 +138,9 @@ void iniMonstros(ESTADO *estadoCarregado){
             if(estadoCarregado->mapa[linha][coluna] == 'M'){
                 if(estadoCarregado->monstros[i].vivo==true){
                     estadoCarregado->monstros[i].posX = coluna;
+                    posX_monstro[i] = coluna;
                     estadoCarregado->monstros[i].posY = linha;
+                    posY_monstro[i] = linha;
                     i++;
                 }
             }
@@ -241,7 +245,7 @@ void moveCriaturas(ESTADO *estadoCarregado)
      }
 }
 
-void posicaoJogador(ESTADO *estadoCarregado)
+void posicaoJogador(ESTADO *estadoCarregado, int *posicaoInicialX, int* posicaoInicialY)
 {
     int x = 0, y = 0;
     int i, j;
@@ -257,6 +261,8 @@ void posicaoJogador(ESTADO *estadoCarregado)
         y = y + ARESTA;//vai uma linha pra baixo
         x = 0;//e volta para a primeira coluna
     }
+    *posicaoInicialX = estadoCarregado->jogador.pos_dinamicaPersX;
+    *posicaoInicialY = estadoCarregado->jogador.pos_dinamicaPersY;
 }
 
 void initJogo(ESTADO *estadoCarregado)
@@ -334,16 +340,17 @@ void desenhaJogo(ESTADO *estadoCarregado, bool menu, int danoX[], int danoY[])
             DrawRectangle(estadoCarregado->monstros[i].posX*ARESTA, estadoCarregado->monstros[i].posY*ARESTA, ARESTA, ARESTA, RED);//desenha os monstros
     }
 
-    for(i = 0; i < 3; i++){//verifica se alguma das 3 bombas está plantada
+    for(i = 0; i < 3; i++)//verifica se alguma das 3 bombas está plantada
         if(estadoCarregado->bomba[i].bomba == true){//se estiver
             DrawRectangle(estadoCarregado->bomba[i].pos_x_bomba, estadoCarregado->bomba[i].pos_y_bomba, ARESTA, ARESTA, YELLOW);//desenha uma bomba amarela
         }
-        if(estadoCarregado->bomba[i].explosao == true){//se estiver em sua fase de explosao
+    for(i = 0; i < 3; i++)
+        if(estadoCarregado->bomba[i].explosao == true)//se estiver em sua fase de explosao
             for(i = 0; i < 5; i++){
                 DrawRectangle(danoX[i], danoY[i], ARESTA, ARESTA, BROWN);//desenha um '+' rapidamente, mostrando o raio de dano
             }
-        }
-    }
+
+
     if(menu){//por enquanto só exibe, as opcoes nao sao funcionais ainda
         DrawRectangle(40, 40, 460, 140, BEIGE);
         DrawText("MENU", 45, 45, 30, BLACK);
@@ -403,7 +410,6 @@ void explosao(ESTADO *estadoCarregado, int danoX[], int danoY[], bool* perdeVida
 
     for(a = 0; a < 5; a++){
         if((danoX[a] == estadoCarregado->jogador.pos_dinamicaPersX) && (danoY[a] == estadoCarregado->jogador.pos_dinamicaPersY)){//se alguma coordenada do raio de dano coincidir com a posicao do jogador
-            estadoCarregado->info.vidas -= 1;//perde uma vida
             *perdeVida = true;
             if(estadoCarregado->info.pontuacao >= 100)
                 estadoCarregado->info.pontuacao -= 100;//se tiver pontos suficientes para perder, perde
@@ -429,8 +435,8 @@ void colhePocao(ESTADO *estadoCarregado, int pontos)
 {
     int j, i;
 
-    j = (estadoCarregado->jogador.pos_dinamicaPersX + estadoCarregado->jogador.persdx)/ARESTA;
-    i = (estadoCarregado->jogador.pos_dinamicaPersY + estadoCarregado->jogador.persdy)/ARESTA;//Se as posicoes dinamicas são o produto da aresta pela posicao na matriz caracter, logo as posicoes na matriz caracter serao a divisao das posiçoes dinamicas pela aresta.
+    j = (estadoCarregado->jogador.pos_dinamicaPersX)/ARESTA;
+    i = (estadoCarregado->jogador.pos_dinamicaPersY)/ARESTA;//Se as posicoes dinamicas são o produto da aresta pela posicao na matriz caracter, logo as posicoes na matriz caracter serao a divisao das posiçoes dinamicas pela aresta.
 
     estadoCarregado->mapa[i][j] = ' ';//onde há pocao e o está em cima dessa posicao, nossa matriz caracter tera esse 'P' trocado por um ' ', ou seja, irá liberar um espaço de livre.
     estadoCarregado->info.pontuacao +=  pontos;//contabiliza 50 pontos por pocao pega
@@ -442,7 +448,7 @@ int moveParaPocao(PERSONAGEM jogador, CONSUMIVEL *pocao)
     int colidiu = 1;
     int i;
     for(i = 0; i < pocao->qntdP; i++){
-        if(((jogador.pos_dinamicaPersX + jogador.persdx)== pocao->posicoes_Xp[i])&&((jogador.pos_dinamicaPersY +jogador.persdy)== pocao->posicoes_Yp[i])){//
+        if(((jogador.pos_dinamicaPersX)== pocao->posicoes_Xp[i])&&((jogador.pos_dinamicaPersY)== pocao->posicoes_Yp[i])){//
             colidiu = 0;//vai ocupar
         }
     }
@@ -455,7 +461,7 @@ int moveParaSer(ESTADO estadoCarregado, int* serCapturado)
     int colidiu = 1;
     int i, achou;
     for(i = 0; i < estadoCarregado.contaseres; i++){
-        if(((estadoCarregado.jogador.pos_dinamicaPersX + estadoCarregado.jogador.persdx) == estadoCarregado.seres[i].posX * ARESTA)&&((estadoCarregado.jogador.pos_dinamicaPersY + estadoCarregado.jogador.persdy)== estadoCarregado.seres[i].posY * ARESTA)){//
+        if(((estadoCarregado.jogador.pos_dinamicaPersX) == estadoCarregado.seres[i].posX * ARESTA)&&((estadoCarregado.jogador.pos_dinamicaPersY)== estadoCarregado.seres[i].posY * ARESTA)){//
             colidiu = 0;//vai ocupar
             achou = i;
         }
@@ -470,7 +476,7 @@ int moveParaMonstro(ESTADO estadoCarregado, int* serCapturado)
     int colidiu = 1;
     int i, achou;
     for(i = 0; i < estadoCarregado.contamonstros; i++){
-        if(((estadoCarregado.jogador.pos_dinamicaPersX + estadoCarregado.jogador.persdx) == estadoCarregado.monstros[i].posX * ARESTA)&&((estadoCarregado.jogador.pos_dinamicaPersY + estadoCarregado.jogador.persdy)== estadoCarregado.monstros[i].posY * ARESTA)){//
+        if(((estadoCarregado.jogador.pos_dinamicaPersX) == estadoCarregado.monstros[i].posX * ARESTA)&&((estadoCarregado.jogador.pos_dinamicaPersY)== estadoCarregado.monstros[i].posY * ARESTA)){//
             colidiu = 0;//vai ocupar
             achou = i;
         }
@@ -556,7 +562,7 @@ void iniciaVariaveisEstadoCarregado(ESTADO *estadoCarregado)
     }
 }
 
-void variaveisParaProximaFase(ESTADO *estadoCarregado, int contador_de_mov_criatura)
+void variaveisParaProximaFase(ESTADO *estadoCarregado, int contador_de_mov_criatura, int *posicaoInicialX, int *posicaoInicialY, int posX_monstro[], int posY_monstro[], int posX_seres[], int posY_seres[])
 {
     int i;
 
@@ -575,7 +581,7 @@ void variaveisParaProximaFase(ESTADO *estadoCarregado, int contador_de_mov_criat
     contador_de_mov_criatura = 0;//////////////////////
 
     //REINICIA ALGUMAS FUNÇÕES
-    posicaoJogador(estadoCarregado);
+    posicaoJogador(estadoCarregado, posicaoInicialX, posicaoInicialY);
     quantosSeres(estadoCarregado);
     quantosMonstros(estadoCarregado);
 
@@ -586,7 +592,7 @@ void variaveisParaProximaFase(ESTADO *estadoCarregado, int contador_de_mov_criat
         estadoCarregado->seres[i].vivo = true;
     }
 
-    iniSeres(estadoCarregado);
-    iniMonstros(estadoCarregado);
+    iniSeres(estadoCarregado, posX_seres, posY_seres);
+    iniMonstros(estadoCarregado, posX_monstro, posY_monstro);
     initJogo(estadoCarregado);
 }
