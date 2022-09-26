@@ -65,6 +65,13 @@ typedef struct{
     bool vivo;//verifica se a criatura está viva ou não
 }MONSTROS;
 
+//ESTRUTURA PARA SALVAR AS POSIÇÕES INICIAIS DO JOGADOR/CRIATURAS
+typedef struct{
+    int posX_monstro[20], posY_monstro[20];
+    int posX_seres[20], posY_seres[20];
+    int posicaoInicialX, posicaoInicialY;
+}INICIAL;
+
 //ESTRUTURA GERAL, QUE CONTÉM OUTRAS ESTRUTURAS E VARIÁVEIS INDISPENSÁVEIS PARA CARREGAR OU SALVAR O JOGO
 typedef struct{
     char mapa[11][27];//mapa interno do jogo
@@ -84,6 +91,7 @@ typedef struct{
 //----------------------------------------------------------------------------
 
 //Protótipos------------------------------------------------------------------
+int  avancaNivel();
 int  carregaJogo();
 void leMapa();
 int  salvaJogo();
@@ -117,20 +125,18 @@ int main()
     //DECLARAÇÃO DE ALGUMAS VARIÁVEIS
     char arqbin[16] = "dadosSalvos.bin";//nome do arquivo binário para salvar e/ou carregar informações
     int i, j, k = 0;//variaveis auxiliares
-    int posicaoInicialX, posicaoInicialY;
-    int posX_monstro[20], posY_monstro[20];
-    int posX_seres[20], posY_seres[20];
     bool vida_extra = false; //bônus de vida
     int danoX[5];//raio de dano da bomba
     int danoY[5];//raio de dano da bomba
     bool perdeVida = false;//verifica se o jogador deve perder vida
-    bool deu_dano;
     bool fim_de_jogo = false;
-    int serCapturado;//número de ser que foi encostado pelo jogador
+    int serCapturado;//número do ser que foi encostado pelo jogador
+    int monstroCapturado;//número do monstro explodido pelo jogador
     int contador_de_mov_criatura = 0;//conta frames para decidir se a criatura deve mover ou não
     bool menu = false;//verifica se o 'menu' está aberto ou fechado
     bool trocaNivel = true;//se verdadeiro, faz avançar a fase
     ESTADO estadoCarregado;//variável do tipo ESTADO(estrutura principal)
+    INICIAL posInicial;
 
     iniciaVariaveisEstadoCarregado(&estadoCarregado);
 
@@ -138,18 +144,8 @@ int main()
     SetTargetFPS(60);
 
     //LOOP PRINCIPAL DO JOGO
-    while (!WindowShouldClose()&&estadoCarregado.info.vidas>0&&fim_de_jogo == false)//O JOGO SÓ CONTINUA ENQUANTO 'ESC' NÃO FOR PRESSIONADO *E* ENQUANTO O JOGADOR TIVER PELO MENOS '1' VIDA
+    while (!WindowShouldClose() && estadoCarregado.info.vidas > 0 && fim_de_jogo == false)//O JOGO SÓ CONTINUA ENQUANTO 'ESC' NÃO FOR PRESSIONADO *E* ENQUANTO O JOGADOR TIVER PELO MENOS '1' VIDA
     {
-        //VERIFICA SE O JOGADOR DEVE PASSAR DE FASE
-        for(i = 0; i < estadoCarregado.contaseres; i++){
-            if(estadoCarregado.seres[i].vivo==false)
-                k++;
-        }
-        if(k == estadoCarregado.contaseres){
-            k=0;
-            trocaNivel = true;
-        }
-
         //FAZ O AVANÇO DE FASE (NO CASO DO PRIMEIRO JOGO, JÁ FARÁ O AVANÇO DA FASE '0' PARA A FASE '1'(PRIMEIRA EXISTENTE))
         if(trocaNivel == true){
             estadoCarregado.info.nivel++;//já começa no nivel '1'
@@ -177,7 +173,7 @@ int main()
             fclose(fase);//fecha o arquivo texto
 
             //REINICIA ALGUMAS VARIÁVEIS
-            variaveisParaProximaFase(&estadoCarregado, contador_de_mov_criatura, &posicaoInicialX, &posicaoInicialY, posX_monstro, posY_monstro, posX_seres, posY_seres);
+            variaveisParaProximaFase(&estadoCarregado, contador_de_mov_criatura, &posInicial);
          }
 
         //SE MENU ESTIVER ATIVO
@@ -220,7 +216,8 @@ int main()
 
                 //REINICIA ALGUMAS VARIÁVEIS
                 iniciaVariaveisEstadoCarregado(&estadoCarregado);
-                variaveisParaProximaFase(&estadoCarregado, contador_de_mov_criatura, &posicaoInicialX, &posicaoInicialY, posX_monstro, posY_monstro, posX_seres, posY_seres);
+                estadoCarregado.info.nivel = 1;
+                variaveisParaProximaFase(&estadoCarregado, contador_de_mov_criatura, &posInicial);
             }
 
             //CARREGA O ÚLTIMO JOGO SALVO
@@ -290,8 +287,7 @@ int main()
                     estadoCarregado.bomba[i].bomba = true;//a bomba esta plantada
                 }
                 if(estadoCarregado.bomba[i].contador_de_bomba == 180){//quando chega ao final
-                    explosao(&estadoCarregado, danoX, danoY, &perdeVida, &serCapturado, i);//cria a explosao de dano
-                    estadoCarregado.monstros[serCapturado].vivo = false;
+                    explosao(&estadoCarregado, danoX, danoY, &perdeVida, &monstroCapturado, i);//cria a explosao de dano
                     estadoCarregado.bomba[i].bomba = false;//a bomba passa a não existir mais
                     estadoCarregado.bomba[i].explosao = true;//sinaliza que ocorre uma explosao grafica
                     estadoCarregado.bomba[i].contador_de_explosao = 0;
@@ -314,10 +310,6 @@ int main()
 
             //MOVIMENTAÇÃO
             if(podeMover(estadoCarregado)== 0){//se puder mover
-                if(IsKeyPressed(KEY_D)||IsKeyPressed(KEY_RIGHT)||IsKeyPressed(KEY_A)||IsKeyPressed(KEY_LEFT)||IsKeyPressed(KEY_W)||IsKeyPressed(KEY_UP)||IsKeyPressed(KEY_S)||IsKeyPressed(KEY_DOWN)){
-                    estadoCarregado.jogador.pos_dinamicaPersX += estadoCarregado.jogador.persdx;
-                    estadoCarregado.jogador.pos_dinamicaPersY += estadoCarregado.jogador.persdy;//desloca o personagem
-                }
                 if(moveParaPocao(estadoCarregado.jogador, &estadoCarregado.pocao)== 0){//se for para cima de uma pocao
                     int pontos = 50;
                     colhePocao(&estadoCarregado, pontos);//realiza o processo de captura da pocao
@@ -326,13 +318,16 @@ int main()
                 }
 
                 if(moveParaSer(estadoCarregado, &serCapturado)== 0){//se for para cima de um ser
-                    estadoCarregado.seres[serCapturado].vivo = false; //esse ser deixa de estar vivo
-                    estadoCarregado.contaseres = estadoCarregado.contaseres - 1; //diminui '1' no contador de seres
-                    estadoCarregado.info.pontuacao += 10; //pontua
+                    if(estadoCarregado.seres[serCapturado].vivo == true){
+                        estadoCarregado.info.pontuacao += 10; //pontua
+                        estadoCarregado.seres[serCapturado].vivo = false;
+                    }
                 }
-
-                if(moveParaMonstro(estadoCarregado, &serCapturado)== 0)//se for para cima de um monstro
+                if(moveParaMonstro(estadoCarregado)== 0)//se for para cima de um monstro
                     perdeVida = true;
+
+                estadoCarregado.jogador.pos_dinamicaPersX += estadoCarregado.jogador.persdx;
+                estadoCarregado.jogador.pos_dinamicaPersY += estadoCarregado.jogador.persdy;//desloca o personagem
 
             }
 
@@ -347,21 +342,24 @@ int main()
                 estadoCarregado.info.vidas -= 1;
                 perdeVida = false;
                 for(i = 0; i < estadoCarregado.contamonstros; i ++){
-                    estadoCarregado.monstros[i].posX = posX_monstro[i];
-                    estadoCarregado.monstros[i].posY = posY_monstro[i];
+                    estadoCarregado.monstros[i].posX = posInicial.posX_monstro[i];
+                    estadoCarregado.monstros[i].posY = posInicial.posY_monstro[i];
                 }
                 for(i = 0; i < estadoCarregado.contaseres; i++){
-                    estadoCarregado.seres[i].posX = posX_seres[i];
-                    estadoCarregado.seres[i].posY = posY_seres[i];
+                    estadoCarregado.seres[i].posX = posInicial.posX_seres[i];
+                    estadoCarregado.seres[i].posY = posInicial.posY_seres[i];
                 }
-                estadoCarregado.jogador.pos_dinamicaPersX = posicaoInicialX;
-                estadoCarregado.jogador.pos_dinamicaPersY = posicaoInicialY;
+                estadoCarregado.jogador.pos_dinamicaPersX = posInicial.posicaoInicialX;
+                estadoCarregado.jogador.pos_dinamicaPersY = posInicial.posicaoInicialY;
             }
 
             //VERIFICA SE DEVE HAVER MOVIMENTAÇÃO DOS MONSTROS
             if(contador_de_mov_criatura % 50 == 0) //movimenta as criaturas em multiplos de 50
                 moveCriaturas(&estadoCarregado);
 
+
+          if(estadoCarregado.contaseres == avancaNivel(estadoCarregado.contaseres-1, estadoCarregado))
+                trocaNivel = true;
 
         }
         //GRÁFICOS
@@ -376,11 +374,11 @@ int main()
         EndDrawing();
         _sleep(2000);
     }
-
+    //se o laço for finalizado por vitória do jogador, escreve "win" e fecha a janela
     if(fim_de_jogo == true){
         BeginDrawing();
         ClearBackground(BLUE);
-        DrawText("WIN!", 150, 80, 95, RED);
+        DrawText("WIN!", 165, 80, 95, RED);
         EndDrawing();
         _sleep(2000);
     }
@@ -390,11 +388,3 @@ int main()
     return 0;
 }
 
-//CHECKLIST
-// mensagem de final de jogo *CORRIGIDO*
-// quando o jogo é iniciado a partir do TAB e dps (N), a primeira fase se repete 2 vezes.
-// dano dos monstros *CORRIGIDO*
-// captura de seres após a primeira fase
-// quando jogador perde uma vida, os seres ,monstros e jogador precisam voltar para as posições iniciais da fase *CORRIGIDO*
-// bombas coexistentes desaparecem quando alguma explode *CORRIGIDO*
-// comentários nas funções
